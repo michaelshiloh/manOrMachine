@@ -27,7 +27,6 @@ const int distanceSensorRxPin = 10;
 const int maxsonic = 11; // should i save this for pwm
 
 
-
 /*
     Other global variables
 */
@@ -38,33 +37,21 @@ const int neoPixelFaceCount = 60;
 */
 Face robotFace(neoPixelFaceCount, neoPixelFacePin);
 
-//Adafruit_NeoPixel faceNeoPixels(
-//    60,
-//    7,
-//    NEO_GRB + NEO_KHZ800);
-
 void setup() {
 
   Serial.begin(9600);
   robotFace.init();
   setupMotors();
-
-
-
-
-  // Neopixel initialization
-  //  faceNeoPixels.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
-  //  faceNeoPixels.show();            // Turn OFF all pixels ASAP
-  //  faceNeoPixels.setBrightness(50);
 }
-
-
 
 void loop() {
 
+
   Serial.println("top of loop");
-   robotFace.smile();
-   delay(1000);
+  robotFace.clear();
+  robotFace.smile();
+  delay(1000);
+  robotFace.clear();
   robotFace.frown();
   delay(1000);
   updateMotors();

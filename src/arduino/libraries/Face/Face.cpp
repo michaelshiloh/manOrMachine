@@ -47,9 +47,8 @@ _pixelPin = pixelPin;
 
 void Face::init() {
 
-		pinMode(LED_BUILTIN, OUTPUT);
+	pinMode(LED_BUILTIN, OUTPUT);
 
-flash(1);
 	faceNeoPixels = new Adafruit_NeoPixel (
 										_pixelCount, 
 										_pixelPin, 
@@ -63,7 +62,6 @@ flash(1);
 
 
 void Face::smile() {
-flash(2);
 
 	int smilePixels[] = {
 	14, 12, 2, 3, 4, 8, 20,  // mouth 0-21
@@ -77,7 +75,6 @@ flash(2);
 }
 
 void Face::frown() {
-//Serial.println("frown");
 
 	int frownPixels[] = {0, 12, 16, 17, 18, 8, 6,
 	51, 53, 54, 48, 36, 34, 33, 39, 47, 57, 58, 44, 40, 30, 29, 43};
@@ -87,6 +84,14 @@ void Face::frown() {
 	}
 	faceNeoPixels->show();
 }
+
+void Face::clear() {
+	uint32_t color = faceNeoPixels->Color(0, 0, 0);
+	for (int i = 0; i < _pixelCount; i++) {
+		faceNeoPixels->setPixelColor(i, color);
+	}
+	faceNeoPixels->show();
+	}
 
 void Face::flash(int times) {
 

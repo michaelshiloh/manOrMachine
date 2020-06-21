@@ -49,6 +49,7 @@ class Face
     void init();
     void smile();
 		void frown();
+		void clear();
 
 	private:
 
