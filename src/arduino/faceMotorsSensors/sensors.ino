@@ -22,9 +22,6 @@ void sensorsInit() {
   distanceSensorSerialPort.begin(9600);
   delay(250); // needs 250mSec before it's ready to receive anything
   delay(100); // first reading will take an additional ~100mS.
-
-
-
 }
 
 boolean stringComplete = false;
@@ -49,8 +46,9 @@ boolean stringComplete = false;
   seems like a good way to do it but the reading is always 59
 */
 
-int EZread()
-{
+/*
+  int EZread()
+  {
   int result;
   char inData[4];                                          //char array to read data into
   int index = 0;
@@ -90,8 +88,8 @@ int EZread()
   delay (49); // Subsequent readings will take 49mS.
 
   return result;
-}
-
+  }
+*/
 
 int doReadingMyWay() {
   char inData[4];
@@ -103,6 +101,7 @@ int doReadingMyWay() {
 
   // Wait for the leading R
   while (inChar != 'R') {
+    if (debugPrint & verboseDistance) Serial.println("waiting for R");
     if (distanceSensorSerialPort.available()) {
       //      Serial.print("received ");
       //      Serial.println( inChar );
@@ -113,31 +112,34 @@ int doReadingMyWay() {
 
   // Now read three characters
   while (!distanceSensorSerialPort.available()) {
+    if (debugPrint & verboseDistance) Serial.println("waiting for first digit");
   }
   inChar = (char)distanceSensorSerialPort.read();
-  Serial.print(inChar);
+  if (debugPrint & reportDistance) Serial.print(inChar);
   inData[0] = inChar;
 
   while (!distanceSensorSerialPort.available()) {
+    if (debugPrint & verboseDistance) Serial.println("waiting for second digit");
   }
   inChar = (char)distanceSensorSerialPort.read();
-  Serial.print(inChar);
+  if (debugPrint & reportDistance)  Serial.print(inChar);
   inData[1] = inChar;
 
   while (!distanceSensorSerialPort.available()) {
+    if (debugPrint & reportDistance) Serial.println("waiting for third digit");
   }
   inChar = (char)distanceSensorSerialPort.read();
-  Serial.print(inChar);
+  if (debugPrint & reportDistance)  Serial.print(inChar);
   inData[2] = inChar;
 
-  Serial.print(" ascii ");
+  if (debugPrint & reportDistance)  Serial.print(" ascii ");
 
 
   inData[03] = 0;
   int result = atoi(inData);
-  Serial.print(" or ");
-  Serial.print(result);
-  Serial.println(" integer");
+  if (debugPrint & reportDistance)  Serial.print(" or ");
+  if (debugPrint & reportDistance) Serial.print(result);
+  if (debugPrint & reportDistance)  Serial.println(" integer");
 
 
   delay (49); // Subsequent readings will take 49mS.
