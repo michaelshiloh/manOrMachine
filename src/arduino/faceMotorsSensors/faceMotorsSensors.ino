@@ -13,7 +13,7 @@
     - remove delays in sensors
     - put pins in order
     - emergency stop
-    - currently, motors continue turning until there is a command to stop. 
+    - currently, motors continue turning until there is a command to stop.
       This is useful for testing but dangerous.
 */
 
@@ -33,10 +33,10 @@ const int distanceSensorTxPin = 2; // actually not used but need it to construct
 const int motorControllerRXPin = 4; // actually not used but need it to construct object
 const int neoPixelFacePin = 7;
 const int motorControllerTXPin = 8;
-const int controlPanelTxPin = 9;
+const int controlPanelTxPin = 9; // yellow wire
 const int distanceSensorRxPin = 10;
 const int maxsonic = 11;
-const int controlPanelRxPin = 12;
+const int controlPanelRxPin = 12; // red wire
 
 
 /*
@@ -49,7 +49,7 @@ const int MIN_DISTANCE = 6;
 const int MAX_DISTANCE = 200;
 
 // Control verbosity of messages
-const int debugPrint = 2;
+const int debugPrint = 12;
 const int verboseDistance = 1;
 const int reportDistance = 2;
 const int verboseMotor = 4;
@@ -133,14 +133,39 @@ void listenHardwareSerialPort() {
 // Listen for commands from the control panel
 
 void listenControlPanelSerialPort() {
-  // read the character we receive on the serial port from the RPi
-  if (controlPanelSerial.available()) {
-    char inChar = (char)controlPanelSerial.read();
-    if (debugPrint & verboseMotor) Serial.print("listenControlPanelSerialPort: received character ]");
-    if (debugPrint & verboseMotor) Serial.print(inChar);
-    if (debugPrint & verboseMotor) Serial.print("[");
-    if (debugPrint & verboseMotor) Serial.println();
-    
-    updateMotors(inChar);
+  // Serial.println("checking port");
+  // By default, the last intialized port is listening.
+  // when you want to listen on a port, explicitly select it:
+  controlPanelSerial.listen();
+  delay(50);
+  if (int foo = controlPanelSerial.available()) {
+    Serial.print("listenControlPanelSerialPort: ");
+    Serial.print(foo);
+    Serial.print(" bytes available\t");
+    char inChar = (char) controlPanelSerial.read();
+    if (inChar) {
+      Serial.print(" received character ]");
+
+      Serial.print((int)inChar);
+      Serial.print("[");
+      Serial.println();
+    } else {
+      Serial.println("null byte received");
+    }
+
+    switch (inChar) {
+      case 4:
+        updateMotors('L');
+        break;
+      case 1:
+        updateMotors('R');
+        break;
+      case 2:
+        updateMotors('F');
+        break;
+      case 0:
+        updateMotors('S');
+        break;
+    }
   }
 }
