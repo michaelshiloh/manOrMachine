@@ -83,7 +83,7 @@ boolean stringComplete = false;
       index = 0;                                           // Reset index ready for next reading
       stringComplete = true;                               // Set completion of read to true
       result = atoi(inData);                               // Changes string data into an integer for use
-    }
+    }    
   }
   delay (49); // Subsequent readings will take 49mS.
 

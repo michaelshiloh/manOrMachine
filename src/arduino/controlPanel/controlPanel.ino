@@ -45,7 +45,7 @@ void setup() {
   pinMode(forwardButtonPin, INPUT_PULLUP);
 }
 
-boolean running = false;
+//boolean running = false;
 
 
 void loop() {
@@ -69,7 +69,7 @@ void loop() {
   lcd.print(forwardState);
 
   if (leftState || rightState || forwardState) {
-    running = true;
+   // running = true;
 
     char message = (leftState << 0) |
                    (rightState << 1) |
@@ -84,12 +84,14 @@ void loop() {
     Serial.print(foo);
     Serial.println(" bytes sent");
   } else {
-    if (running == true) {
-      Serial.println("stop");
-      for (int i = 5; i; i--) {
-        int foo = controlPanelSerial.write((char)0);
-      }
-      running = false;
-    }
+
+    // get rid of this and replace with a timeout on the controller
+//    if (running == true) {
+//      Serial.println("stop");
+//      for (int i = 5; i; i--) {
+//        int foo = controlPanelSerial.write((char)0);
+//      }
+//      running = false;
+//    }
   }
 }

@@ -5,7 +5,12 @@
 
   20 June 2020 - MS - incorporated into integrated program
   11 June 2020 - MS - Created
-  26 June 2020 - MS - convert to a library
+  29 June 2020 - MS - add a timeout for each command
+
+  TODO
+  - handle millis overflowing (long = ? seconds)
+  - all those hard coded numbers in motor control
+    should be consts
 
 */
 
@@ -29,6 +34,10 @@
    3 = motorControllerRX (Arduino NC)
    4 = motorControllerTX (Arduino 8) currently A2 white
 */
+
+const long motorTimeOut = 90; // stop after this much time
+long motor1OnAt = -1; // -1 means not running
+long motor2OnAt = -1; //
 
 
 void setupMotors() {
@@ -135,7 +144,38 @@ void turnRight(int speed) {
   controlMotor2(speed, MYFORWARD);
 }
 
+void faster() {
+  if (debugPrint & verboseMotor) Serial.print("faster: ");
+  forwardSpeed += 10;
+  if (debugPrint & verboseMotor) Serial.print("Speed now at: ");
+  if (debugPrint & verboseMotor) Serial.println(forwardSpeed);
+}
 
+void slower() {
+  if (debugPrint & verboseMotor) Serial.println("slower: ");
+  forwardSpeed -= 10;
+  if (debugPrint & verboseMotor) Serial.print("Speed now at: ");
+  if (debugPrint & verboseMotor) Serial.println(forwardSpeed);
+}
+
+
+// If ontime is -1 it's not running
+void motorControllerTick() {
+  if ((motor1OnAt != -1) && ((millis() - motor1OnAt ) > motorTimeOut )) {
+    stopMotor1();
+    if (debugPrint & verboseMotorTimeout) Serial.println("motorControllerTick(): motor 1 timeout");
+  }
+  if ((motor2OnAt != -1) && ((millis() - motor2OnAt ) > motorTimeOut )) {
+    stopMotor2();
+    if (debugPrint & verboseMotorTimeout) Serial.println("motorControllerTick(): motor 2 timeout");
+  }
+}
+
+
+/*
+   Only functions below this line
+  write to the motor controller serial port
+*/
 
 /*    0 = stop
       1 = slowest
@@ -144,8 +184,8 @@ void turnRight(int speed) {
 */
 
 void controlMotor1(int speed, bool direction) {
-  if (debugPrint & debugMotor) Serial.print("direction = ");
-  if (debugPrint & debugMotor) Serial.println(direction);
+  if (debugPrint & verboseMotorTimeout) Serial.print("Motor 1, direction = ");
+  if (debugPrint & verboseMotorTimeout) Serial.println(direction);
 
   /*
      From the documentation:
@@ -157,7 +197,7 @@ void controlMotor1(int speed, bool direction) {
      Sending this character will shut down both motors.
   */
   if (speed == 0) {
-    motorControllerSerialPort.write(64);
+    stopMotor1();
   }
 
   if (direction == MYREVERSE) {
@@ -172,9 +212,12 @@ void controlMotor1(int speed, bool direction) {
   if (debugPrint & verboseMotor) Serial.println(speed);
 
   motorControllerSerialPort.write(speed);
+  motor1OnAt = millis();
 }
 
 void controlMotor2(int speed, bool direction) {
+  if (debugPrint & verboseMotorTimeout) Serial.print("Motor 2, direction = ");
+  if (debugPrint & verboseMotorTimeout) Serial.println(direction);
   /*
      From the documentation:
 
@@ -186,7 +229,7 @@ void controlMotor2(int speed, bool direction) {
      Sending this character will shut down both motors.
   */
   if (speed == 0) {
-    motorControllerSerialPort.write(192);
+    stopMotor2();
   }
 
   if (direction == MYREVERSE) {
@@ -201,23 +244,23 @@ void controlMotor2(int speed, bool direction) {
   if (debugPrint & verboseMotor) Serial.println(speed);
 
   motorControllerSerialPort.write(speed);
+  motor2OnAt = millis();
+
 }
 
 void stopBothMotors() {
   if (debugPrint & verboseMotor) Serial.println("stopBothMotors");
   motorControllerSerialPort.write((byte)0);
+  motor1OnAt = -1;
+  motor2OnAt = -1;
 }
 
-void faster() {
-  if (debugPrint & verboseMotor) Serial.print("faster: ");
-  forwardSpeed += 10;
-  if (debugPrint & verboseMotor) Serial.print("Speed now at: ");
-  if (debugPrint & verboseMotor) Serial.println(forwardSpeed);
+void stopMotor1() {
+  motorControllerSerialPort.write(64);
+  motor1OnAt = -1;
 }
 
-void slower() {
-  if (debugPrint & verboseMotor) Serial.println("slower: ");
-  forwardSpeed -= 10;
-  if (debugPrint & verboseMotor) Serial.print("Speed now at: ");
-  if (debugPrint & verboseMotor) Serial.println(forwardSpeed);
+void stopMotor2() {
+  motorControllerSerialPort.write(192);
+  motor2OnAt = -1;
 }
