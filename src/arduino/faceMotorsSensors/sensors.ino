@@ -9,6 +9,9 @@
 	Feb 15 2020 - Michael Shiloh - written by Michael Shiloh
   20 June 2020 - MS - incorporated into integrated program
 
+  TODO
+  - need to rewrite doReadingMyWay to not wait forever
+
 
 */
 
@@ -25,6 +28,8 @@ void sensorsInit() {
 }
 
 boolean stringComplete = false;
+long delayBeforeNextReading = 49;
+long lastReadingAt = 0;
 
 /* example from Maxbotix
 
@@ -83,7 +88,7 @@ boolean stringComplete = false;
       index = 0;                                           // Reset index ready for next reading
       stringComplete = true;                               // Set completion of read to true
       result = atoi(inData);                               // Changes string data into an integer for use
-    }    
+    }
   }
   delay (49); // Subsequent readings will take 49mS.
 
@@ -92,6 +97,13 @@ boolean stringComplete = false;
 */
 
 int doReadingMyWay() {
+
+  if ( (millis() - lastReadingAt) < delayBeforeNextReading) {
+    return (0);
+  }
+
+  lastReadingAt = millis();
+
   char inData[4];
   char inChar = 0; // anything but R
   // read the character we receive on the serial port from the RPi
@@ -100,15 +112,16 @@ int doReadingMyWay() {
   distanceSensorSerialPort.listen();
 
   // Wait for the leading R
-  while (inChar != 'R') {
-    if (debugPrint & verboseDistance) Serial.println("waiting for R");
-    if (distanceSensorSerialPort.available()) {
-      //      Serial.print("received ");
-      //      Serial.println( inChar );
-      inChar = (char)distanceSensorSerialPort.read();
+
+  if (debugPrint & verboseDistance) Serial.println("waiting for R");
+  if (distanceSensorSerialPort.available()) {
+    //      Serial.print("received ");
+    //      Serial.println( inChar );
+    inChar = (char)distanceSensorSerialPort.read();
+    if (inChar != 'R') {
+      return (-1);
     }
   }
-
 
   // Now read three characters
   while (!distanceSensorSerialPort.available()) {
@@ -134,7 +147,6 @@ int doReadingMyWay() {
 
   if (debugPrint & reportDistance)  Serial.print(" ascii ");
 
-
   inData[03] = 0;
   int result = atoi(inData);
   if (debugPrint & reportDistance)  Serial.print(" or ");
@@ -142,6 +154,73 @@ int doReadingMyWay() {
   if (debugPrint & reportDistance)  Serial.println(" integer");
 
 
-  delay (49); // Subsequent readings will take 49mS.
+  //delay (49); // Subsequent readings will take 49mS.
   return result;
+}
+
+
+/* do reading my way, one char at a time to minimize delays
+  basic concept:
+  - global array for incoming chars
+  - global flag indiciating a valid reading is ready
+  - when flag is cleared, time to read another
+
+  If sensorDataValidFlag == true, return
+  If sensorDataGotRFlag == false, get 'R'
+  If sensorDataGotRFlag == true, get next byte
+  If got 3 bytes, set sensorDataValidFlag == true and reset sensorDataGotRFlag
+  -
+*/
+
+char sensorData[4] = {0, 0, 0, 0};  // null terminate
+int sensorDataNextByte = 0;
+boolean sensorDataValidFlag = false;
+boolean sensorDataGotRFlag = false;
+
+int sensorReadingTick() {
+  char inChar;
+
+  if (sensorDataValidFlag) {
+    return (0);
+  }
+
+  if (!sensorDataGotRFlag) {
+    if (debugPrint & debugSensorReadingTick) Serial.println("sensorReadingTick: waiting for R");
+
+    if (!distanceSensorSerialPort.available())
+    {
+      return (0);
+    }
+
+    inChar = (char)distanceSensorSerialPort.read();
+    if (inChar == 'R') {
+      sensorDataGotRFlag = true;
+    }
+    return (0);
+  } else { // we already have 'R'
+
+    if (debugPrint & debugSensorReadingTick) Serial.print("sensorReadingTick: reading character ");
+    if (debugPrint & debugSensorReadingTick) Serial.println(sensorDataNextByte);
+
+    if (!distanceSensorSerialPort.available()) 
+    {
+      return (0);
+    }
+
+    // Read the next character
+    inChar = (char)distanceSensorSerialPort.read();
+    sensorData[sensorDataNextByte++] = inChar;
+
+    // Do we have all three characters?
+    if (sensorDataNextByte == 3) {
+      sensorDataValidFlag == true;
+      sensorDataGotRFlag = false;
+      return atoi(sensorData);
+    }
+    return (0);
+  }
+}
+
+void clearSensorDataValidFlag () {
+  sensorDataValidFlag == false;
 }

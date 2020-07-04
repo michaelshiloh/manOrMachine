@@ -49,12 +49,13 @@ const int MIN_DISTANCE = 6;
 const int MAX_DISTANCE = 200;
 
 // Control verbosity of messages
-const int debugPrint = 16;
 const int verboseDistance = 1;
 const int reportDistance = 2;
 const int verboseMotor = 4;
 const int debugMotor = 8;
 const int verboseMotorTimeout = 16;
+const int debugSensorReadingTick = 32;
+const int debugPrint = debugSensorReadingTick;
 
 // for controlling the motors
 const int MYFORWARD = 0;
@@ -94,7 +95,7 @@ void loop() {
   //  robotFace.clear();
   //  robotFace.frown();
   //  delay(1000);
-  
+
   motorControllerTick(); // this must be called regularly so all other functions here must not use delay()
 
   listenHardwareSerialPort();
@@ -103,7 +104,11 @@ void loop() {
 
   // Serial.println("measure distance");
   int distance;
- // distance = doReadingMyWay();  // this could cause long delays due to [while (inChar != 'R') {]
+  //  distance = doReadingMyWay();
+
+  distance = sensorReadingTick();
+  if (distance)
+    clearSensorDataValidFlag ();
 
   // Only move if the reading is valid
   if ( distance == constrain( distance, MIN_DISTANCE, MAX_DISTANCE)) {
@@ -142,16 +147,16 @@ void listenControlPanelSerialPort() {
   controlPanelSerial.listen();
   delay(50);
   if (int foo = controlPanelSerial.available()) {
- //   Serial.print("listenControlPanelSerialPort: ");
+    //   Serial.print("listenControlPanelSerialPort: ");
     //Serial.print(foo);
     //Serial.print(" bytes available\t");
     char inChar = (char) controlPanelSerial.read();
     if (inChar) {
-    //  Serial.print(" received character ]");
+      //  Serial.print(" received character ]");
 
-//      Serial.print((int)inChar);
-//      Serial.print("[");
-//      Serial.println();
+      //      Serial.print((int)inChar);
+      //      Serial.print("[");
+      //      Serial.println();
     } else {
       Serial.println("null byte received");
     }
