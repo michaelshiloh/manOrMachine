@@ -49,6 +49,8 @@ class Face
     void init();
     void smile();
 		void frown();
+		void eyesLeft();
+		void eyesRight();
 		void clear();
 
 	private:
@@ -57,6 +59,7 @@ class Face
 		int _pixelCount;
 		int _pixelPin;
 		void flash(int times);
+		void paint( uint32_t color, int* pixels, int pixelsLength);
 };
 
 #endif

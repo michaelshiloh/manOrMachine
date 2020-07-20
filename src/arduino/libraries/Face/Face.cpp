@@ -63,26 +63,116 @@ void Face::init() {
 
 void Face::smile() {
 
-	int smilePixels[] = {
+	int pixels[] = {
 	14, 12, 2, 3, 4, 8, 20,  // mouth 0-21
 	51, 53, 54, 48, 36, 34, 33, // eyes
 	39, 47, 57, 58, 44, 40, 30, 29, 43};
-	uint32_t color = faceNeoPixels->Color(150,   100,   100);
-	for (int i = 0; i < (sizeof(smilePixels) / sizeof(int)); i++) {
-		faceNeoPixels->setPixelColor(smilePixels[i], color);
-	}
+	paint(
+		faceNeoPixels->Color(150,   100,   100),
+		pixels, 
+		sizeof(pixels)/sizeof(int));
 	faceNeoPixels->show();
 }
 
 void Face::frown() {
 
-	int frownPixels[] = {0, 12, 16, 17, 18, 8, 6,
+	int pixels[] = {0, 12, 16, 17, 18, 8, 6,
 	51, 53, 54, 48, 36, 34, 33, 39, 47, 57, 58, 44, 40, 30, 29, 43};
-	uint32_t color = faceNeoPixels->Color(150,   100,   100);
-	for (int i = 0; i < (sizeof(frownPixels) / sizeof(int)); i++) {
-		faceNeoPixels->setPixelColor(frownPixels[i], color);
-	}
+	paint(
+		faceNeoPixels->Color(150,   100,   100),
+		pixels, 
+		sizeof(pixels)/sizeof(int));
 	faceNeoPixels->show();
+}
+
+void Face::eyesLeft() {
+	int iris[] = {
+		49, 48,
+		38, 39,
+		45, 44,
+		42, 43
+	};
+	int sclera[] = {
+		56, 57, 58, 59,
+		47, 46,
+		40, 41,
+		31, 30, 29, 28,
+		52, 53, 54, 55,
+		51, 50,
+		36, 37,
+		35, 34, 33, 32
+	};
+	int mouth[] = {
+		23, 22, 21,
+		14, 15, 16, 17, 18, 19, 20,
+		13, 12, 11, 10, 9, 8, 7,
+		4, 5, 6
+	};
+
+	paint(
+		faceNeoPixels->Color(9, 65, 230),
+		iris, 
+		sizeof(iris)/sizeof(int));
+
+	paint(
+		faceNeoPixels->Color(255, 255, 255),
+		sclera, 
+		sizeof(sclera)/sizeof(int));
+
+	paint(
+		faceNeoPixels->Color(230, 40, 90),
+		mouth, 
+		sizeof(mouth)/sizeof(int));
+
+	faceNeoPixels->show();
+}
+
+void Face::eyesRight() {
+	int iris[] = {
+		51, 50,
+		36, 37,
+		47, 46,
+		40, 41
+	};
+	int sclera[] = {
+		56, 57, 58, 59,
+		45, 44,
+		42, 43,
+		31, 30, 29, 28,
+		52, 53, 54, 55,
+		49, 48, 
+		38, 39,
+		35, 34, 33, 32
+	};
+	int mouth[] = {
+		27, 26, 25,
+		14, 15, 16, 17, 18, 19, 20,
+		13, 12, 11, 10, 9, 8, 7,
+		0, 1, 2
+	};
+
+	paint(
+		faceNeoPixels->Color(9, 65, 230),
+		iris, 
+		sizeof(iris)/sizeof(int));
+
+	paint(
+		faceNeoPixels->Color(255, 255, 255),
+		sclera, 
+		sizeof(sclera)/sizeof(int));
+
+	paint(
+		faceNeoPixels->Color(230, 40, 90),
+		mouth, 
+		sizeof(mouth)/sizeof(int));
+
+	faceNeoPixels->show();
+}
+
+void Face::paint(uint32_t color, int* pixels, int pixelsLength) {
+	while (pixelsLength--) {// decrement by one and returns the old value of
+		faceNeoPixels->setPixelColor(*(pixels + pixelsLength), color);
+	}
 }
 
 void Face::clear() {
@@ -91,7 +181,7 @@ void Face::clear() {
 		faceNeoPixels->setPixelColor(i, color);
 	}
 	faceNeoPixels->show();
-	}
+}
 
 void Face::flash(int times) {
 

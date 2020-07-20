@@ -6,10 +6,11 @@
     20 jun 2020 - ms - library for face
     21 jun 2020 - ms - maxsonic sensor
     25 jun 2020 - ms - start adding control panel
+    17 jul 2020 - ms - use the new motor controller library
 
     TODO
     - full description
-    - classes for motors, sensors?
+    - classes for sensors?
     - remove delays in sensors
     - put pins in order
     - emergency stop
@@ -23,6 +24,7 @@
 #include <Adafruit_NeoPixel.h>
 #include <SoftwareSerial.h>
 #include <Face.h>
+#include <SabertoothMotorController.h>
 
 /*
    Pin assignments
@@ -43,6 +45,7 @@ const int controlPanelRxPin = 12; // red wire
     Other global variables
 */
 const int neoPixelFaceCount = 60;
+const int motorTimeOut = 90;
 
 // reasonable readings of distance sensor (unverified)
 const int MIN_DISTANCE = 6;
@@ -62,6 +65,8 @@ const int MYFORWARD = 0;
 const int MYREVERSE = 1;
 int forwardSpeed = 80;
 
+// For keeping track of what we are doing
+char lastChar;
 
 /*
    global objects
@@ -69,6 +74,10 @@ int forwardSpeed = 80;
 Face robotFace(neoPixelFaceCount, neoPixelFacePin);
 SoftwareSerial motorControllerSerialPort(motorControllerRXPin, motorControllerTXPin); // RX, TX
 SoftwareSerial controlPanelSerial(controlPanelRxPin, controlPanelTxPin); // RX, TX
+SabertoothMotorController myMotorController(
+  motorControllerRXPin,
+  motorControllerTXPin,
+  motorTimeOut);
 
 void controlPanelInit() {
 }
@@ -80,23 +89,22 @@ void setup() {
   controlPanelSerial.begin(9600);
 
   motorControllerSerialPort.begin(9600);
-  delay(100); // why?
+  //delay(100); // why?
 
   robotFace.init();
-  setupMotors();
+  myMotorController.init();
   sensorsInit();
 }
 
 void loop() {
 
-  //  robotFace.clear();
-  //  robotFace.smile();
+
   //  delay(1000);
   //  robotFace.clear();
   //  robotFace.frown();
   //  delay(1000);
 
-  motorControllerTick(); // this must be called regularly so all other functions here must not use delay()
+  myMotorController.tick(); // this must be called regularly so all other functions here must not use delay()
 
   listenHardwareSerialPort();
   listenControlPanelSerialPort();
@@ -145,7 +153,7 @@ void listenControlPanelSerialPort() {
   // By default, the last intialized port is listening.
   // when you want to listen on a port, explicitly select it:
   controlPanelSerial.listen();
-  delay(50);
+  delay(50); // this will cause trouble
   if (int foo = controlPanelSerial.available()) {
     //   Serial.print("listenControlPanelSerialPort: ");
     //Serial.print(foo);
@@ -164,16 +172,80 @@ void listenControlPanelSerialPort() {
     switch (inChar) {
       case 4:
         updateMotors('L');
+        if (lastChar != inChar) {
+          robotFace.clear();
+          robotFace.eyesLeft();
+        }
         break;
       case 1:
         updateMotors('R');
+
+        if (lastChar != inChar) {
+          robotFace.clear();
+          robotFace.eyesRight();
+        }
         break;
       case 2:
         updateMotors('F');
+        if (lastChar != inChar) {
+          robotFace.clear();
+          robotFace.smile();
+        }
         break;
       case 0:
         updateMotors('S');
+        if (lastChar != inChar) {
+          robotFace.clear();
+          robotFace.frown();
+        }
         break;
     }
+    lastChar = inChar;
+  }
+}
+
+void updateMotors(char inChar) {
+  /*
+    1 = pin 13 LED on
+    0 = pin 13 LED  off
+    F = move Forward
+    B = move Backwards
+    L = turn Left
+    R = turn Right
+    S = Stop
+    + = set forward motor speed faster
+    - = set forward motor speed slower
+  */
+
+  switch (inChar) {
+
+    case '1':
+      Serial.println("LED on");
+      digitalWrite(LED_BUILTIN, HIGH);
+      break;
+    case '0':
+      Serial.println("LED off");
+      digitalWrite(LED_BUILTIN, LOW);
+      break;
+    case 'f':
+    case 'F':
+      myMotorController.forward(80);
+      break;
+    case 'b':
+    case 'B':
+      myMotorController.backward(80);
+      break;
+    case 'l':
+    case 'L':
+      myMotorController.left(80);
+      break;
+    case 'r':
+    case 'R':
+      myMotorController.right(80);
+      break;
+
+    default:
+      myMotorController.forward(0);
+      Serial.println("invalid message");
   }
 }
