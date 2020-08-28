@@ -8,6 +8,7 @@
     25 jun 2020 - ms - start adding control panel
     17 jul 2020 - ms - use the new motor controller library
     12 aug 2020 - ms - transition to Arduino MKRWAN1310: hardware serial, lora radio
+    26 aug 2020 - ms - first test MKR - motor controller, sensor works! Next: radio
 
     TODO
     - full description
@@ -73,7 +74,7 @@ const int verboseMotorTimeout = 1 << 5;
 const int debugSensorReadingTick = 1 << 6;
 const int verboseHardwareSerial = 1 << 7;
 
-const int debugPrint = reportDistance ;
+const int debugPrint = 0 ;
 
 // for controlling the motors
 const int MYFORWARD = 0;
@@ -128,7 +129,14 @@ void setup() {
 
   sensorsInit();
 
-  //  updateMotors();
+  //  updateMotors();?? perhaps I meant motorInit?
+
+  if (!LoRa.begin(915E6)) {
+    Serial.println("Starting LoRa failed!");
+    while (1);
+  }
+  LoRa.beginPacket(); // open a packet
+  Serial.println("fmsOn LoRa ready");
 }
 void loop() {
 
@@ -137,13 +145,31 @@ void loop() {
   listenHardwareSerialPort();
 
   // super simple sensor read
+  // with added LoRa send
   while (sensorSerial.available()) {
     char c = sensorSerial.read();
     if (c == 'R') {
-      if (debugPrint & reportDistance) Serial.println();
+      if (debugPrint & reportDistance) Serial.println(); // end the line
+      LoRa.endPacket(); // end the packet
+      LoRa.beginPacket(); // begin the next packet
     }
     else {
       if (debugPrint & reportDistance) Serial.print(c);
+      LoRa.write(c); // write this character
+    }
+  }
+
+  // listen for commands on LoRa
+  int packetSize = LoRa.parsePacket();
+  if (packetSize) {
+    // received a packet
+    Serial.print("Received packet ");
+
+    // read packet
+    if (LoRa.available()) {
+      char inChar = (char)LoRa.read();
+      updateMotors(inChar);
+      // eventually parse packet and send command to motor controller
     }
   }
 }

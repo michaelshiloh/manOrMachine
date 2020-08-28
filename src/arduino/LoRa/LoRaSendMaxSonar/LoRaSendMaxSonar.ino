@@ -1,4 +1,4 @@
-#include <SPI.h>
+//#include <SPI.h>
 #include <LoRa.h>
 
 #include "wiring_private.h" // pinPeripheral() function
