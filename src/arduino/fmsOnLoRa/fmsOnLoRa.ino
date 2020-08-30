@@ -117,6 +117,7 @@ void SERCOM3_Handler()
 void setup() {
 
   Serial.begin(9600);
+  while (!Serial);
   pinMode(LED_BUILTIN, OUTPUT);
 
   robotFace.init();
@@ -135,7 +136,7 @@ void setup() {
     Serial.println("Starting LoRa failed!");
     while (1);
   }
-  LoRa.beginPacket(); // open a packet
+  //LoRa.beginPacket(); // open a packet
   Serial.println("fmsOn LoRa ready");
 }
 void loop() {
@@ -144,33 +145,38 @@ void loop() {
 
   listenHardwareSerialPort();
 
+  listenLoRa();
+
   // super simple sensor read
   // with added LoRa send
   while (sensorSerial.available()) {
     char c = sensorSerial.read();
     if (c == 'R') {
       if (debugPrint & reportDistance) Serial.println(); // end the line
-      LoRa.endPacket(); // end the packet
-      LoRa.beginPacket(); // begin the next packet
+      // LoRa.endPacket(); // end the packet
+      // LoRa.beginPacket(); // begin the next packet
     }
     else {
       if (debugPrint & reportDistance) Serial.print(c);
-      LoRa.write(c); // write this character
+      //  LoRa.write(c); // write this character
     }
   }
 
-  // listen for commands on LoRa
+}
+
+void listenLoRa() {
+
+  // Anything from radio?
   int packetSize = LoRa.parsePacket();
   if (packetSize) {
     // received a packet
     Serial.print("Received packet ");
-
-    // read packet
-    if (LoRa.available()) {
+    while (LoRa.available()) {
       char inChar = (char)LoRa.read();
+      Serial.print(inChar);
       updateMotors(inChar);
-      // eventually parse packet and send command to motor controller
     }
+    Serial.println();
   }
 }
 
@@ -232,7 +238,7 @@ void updateMotors(char inChar) {
       break;
 
     default:
-      moveForward(0);
+      // moveForward(0);
       Serial.println("invalid message");
   }
 }
