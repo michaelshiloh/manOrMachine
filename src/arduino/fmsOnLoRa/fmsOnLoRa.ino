@@ -117,7 +117,7 @@ void SERCOM3_Handler()
 void setup() {
 
   Serial.begin(9600);
-  while (!Serial);
+ // while (!Serial);
   pinMode(LED_BUILTIN, OUTPUT);
 
   robotFace.init();
