@@ -9,6 +9,7 @@
     17 jul 2020 - ms - use the new motor controller library
     12 aug 2020 - ms - transition to Arduino MKRWAN1310: hardware serial, lora radio
     26 aug 2020 - ms - first test MKR - motor controller, sensor works! Next: radio
+    30 aug 2020 - ms - radio works receiving commands; next sending sensor data
 
     TODO
     - full description
@@ -117,7 +118,7 @@ void SERCOM3_Handler()
 void setup() {
 
   Serial.begin(9600);
- // while (!Serial);
+  // while (!Serial);
   pinMode(LED_BUILTIN, OUTPUT);
 
   robotFace.init();
@@ -139,6 +140,10 @@ void setup() {
   //LoRa.beginPacket(); // open a packet
   Serial.println("fmsOn LoRa ready");
 }
+
+char distanceAsChars[4];
+int charIndex = 0;
+
 void loop() {
 
   motorControllerTick(); // this must be called regularly so all other functions here must not use delay()
@@ -147,26 +152,45 @@ void loop() {
 
   listenLoRa();
 
-  // super simple sensor read
-  // with added LoRa send
+  betterSensorRead();
+}
+
+void betterSensorRead () {
+
   while (sensorSerial.available()) {
     char c = sensorSerial.read();
     if (c == 'R') {
-      if (debugPrint & reportDistance) Serial.println(); // end the line
-      // LoRa.endPacket(); // end the packet
-      // LoRa.beginPacket(); // begin the next packet
+      distanceAsChars[charIndex] = '\0';
+
+      Serial.print("got an R, distance = ");
+      int distance = atoi( distanceAsChars);
+      Serial.println(distance);
+
+      LoRa.beginPacket(); // begin the next packet
+      LoRa.print(distance);
+      LoRa.endPacket(); // end the packet
+      charIndex = 0;
+    //  break;
     }
     else {
-      if (debugPrint & reportDistance) Serial.print(c);
-      //  LoRa.write(c); // write this character
+      Serial.print("char[");
+      Serial.print(charIndex);
+      Serial.print("] = ]");
+      Serial.print(c);
+      Serial.print("[");
+      Serial.println();
+      distanceAsChars[charIndex] = c;
+      charIndex++;
     }
   }
-
 }
+
+
 
 void listenLoRa() {
 
   // Anything from radio?
+ //  Serial.println("checking radio");
   int packetSize = LoRa.parsePacket();
   if (packetSize) {
     // received a packet
