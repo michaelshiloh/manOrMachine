@@ -152,10 +152,18 @@ void loop() {
 
   listenLoRa();
 
-  betterSensorRead();
+  //betterSensorRead();
 }
 
+long timeLastSent = 0;
+const long interval = 80;
+
 void betterSensorRead () {
+
+  // don't send too often
+  if (millis() - timeLastSent < interval) {
+    return;
+  }
 
   while (sensorSerial.available()) {
     char c = sensorSerial.read();
@@ -170,15 +178,15 @@ void betterSensorRead () {
       LoRa.print(distance);
       LoRa.endPacket(); // end the packet
       charIndex = 0;
-    //  break;
+      timeLastSent = millis();
     }
     else {
-      Serial.print("char[");
-      Serial.print(charIndex);
-      Serial.print("] = ]");
-      Serial.print(c);
-      Serial.print("[");
-      Serial.println();
+//      Serial.print("char[");
+//      Serial.print(charIndex);
+//      Serial.print("] = ]");
+//      Serial.print(c);
+//      Serial.print("[");
+//      Serial.println();
       distanceAsChars[charIndex] = c;
       charIndex++;
     }
@@ -190,7 +198,7 @@ void betterSensorRead () {
 void listenLoRa() {
 
   // Anything from radio?
- //  Serial.println("checking radio");
+  //  Serial.println("checking radio");
   int packetSize = LoRa.parsePacket();
   if (packetSize) {
     // received a packet

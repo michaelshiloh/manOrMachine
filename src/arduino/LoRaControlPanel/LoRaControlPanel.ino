@@ -28,7 +28,7 @@ void loop() {
 
   checkButtons();
 
-  checkLoRa();
+//  checkLoRa(); just skip it for now; later perhaps add in specific dosage
 }
 
 void checkLoRa() {
@@ -46,13 +46,23 @@ void checkLoRa() {
   }
 }
 
+long timeLastSent = 0;
+const long interval = 0; // send as often as possible
+
 void checkButtons() {
+
+  // don't send too often
+  if (millis() - timeLastSent < interval) {
+    Serial.println("too soon");
+    return;
+  }
 
   if ( digitalRead(forwardButtonPin)) {
     Serial.println(" sending f");
     LoRa.beginPacket();
     LoRa.print('f');
     LoRa.endPacket();
+    timeLastSent = millis();
   }
 
   if ( digitalRead(backwardButtonPin)) {
@@ -60,6 +70,7 @@ void checkButtons() {
     LoRa.beginPacket();
     LoRa.print('b');
     LoRa.endPacket();
+    timeLastSent = millis();
   }
 
   if ( digitalRead(leftButtonPin)) {
@@ -67,6 +78,7 @@ void checkButtons() {
     LoRa.beginPacket();
     LoRa.print('l');
     LoRa.endPacket();
+    timeLastSent = millis();
   }
 
   if ( digitalRead(rightButtonPin)) {
@@ -74,6 +86,7 @@ void checkButtons() {
     LoRa.beginPacket();
     LoRa.print('r');
     LoRa.endPacket();
+    timeLastSent = millis();
   }
 
 }
