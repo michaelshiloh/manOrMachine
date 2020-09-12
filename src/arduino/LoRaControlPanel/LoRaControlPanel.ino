@@ -7,6 +7,7 @@ const int forwardButtonPin = 3;
 const int backwardButtonPin = 4;
 const int leftButtonPin = 2;
 const int rightButtonPin = 5;
+const int dataButtonPin = 6;
 
 void setup() {
   Serial.begin(9600);
@@ -22,16 +23,17 @@ void setup() {
   pinMode(backwardButtonPin, INPUT);
   pinMode(leftButtonPin, INPUT);
   pinMode(rightButtonPin, INPUT);
+  pinMode(dataButtonPin, INPUT);
 }
 
 void loop() {
 
   checkButtons();
 
-//  checkLoRa(); just skip it for now; later perhaps add in specific dosage
+
 }
 
-void checkLoRa() {
+int checkLoRa() {
 
   // Anything from radio?
   int packetSize = LoRa.parsePacket();
@@ -43,6 +45,9 @@ void checkLoRa() {
       Serial.print(inChar);
     }
     Serial.println();
+    return 1;
+  } else {
+    return 0;
   }
 }
 
@@ -87,6 +92,17 @@ void checkButtons() {
     LoRa.print('r');
     LoRa.endPacket();
     timeLastSent = millis();
+  }
+
+  if ( digitalRead(dataButtonPin)) {
+    Serial.println(" sending d");
+    LoRa.beginPacket();
+    LoRa.print('d');
+    LoRa.endPacket();
+    timeLastSent = millis();
+
+    checkLoRa();
+      
   }
 
 }

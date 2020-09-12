@@ -129,7 +129,7 @@ void setup() {
   pinPeripheral(motorControllerRxPin, PIO_SERCOM_ALT);
   stopBothMotors();
 
-  sensorsInit();
+  // sensorsInit();
 
   //  updateMotors();?? perhaps I meant motorInit?
 
@@ -152,13 +152,13 @@ void loop() {
 
   listenLoRa();
 
-  //betterSensorRead();
+  //sendSensorData();
 }
 
 long timeLastSent = 0;
 const long interval = 80;
 
-void betterSensorRead () {
+void sendSensorData () {
 
   // don't send too often
   if (millis() - timeLastSent < interval) {
@@ -179,14 +179,15 @@ void betterSensorRead () {
       LoRa.endPacket(); // end the packet
       charIndex = 0;
       timeLastSent = millis();
+      break; // only send once per call
     }
     else {
-//      Serial.print("char[");
-//      Serial.print(charIndex);
-//      Serial.print("] = ]");
-//      Serial.print(c);
-//      Serial.print("[");
-//      Serial.println();
+      //      Serial.print("char[");
+      //      Serial.print(charIndex);
+      //      Serial.print("] = ]");
+      //      Serial.print(c);
+      //      Serial.print("[");
+      //      Serial.println();
       distanceAsChars[charIndex] = c;
       charIndex++;
     }
@@ -263,6 +264,10 @@ void updateMotors(char inChar) {
     case 'R':
       turnRight(80);
       break;
+    case 'd':
+    case 'D':
+      sendSensorData();
+      break;
 
     // Is this smart? Might be a good emergency stop
     case '\r':
@@ -271,7 +276,10 @@ void updateMotors(char inChar) {
 
     default:
       // moveForward(0);
-      Serial.println("invalid message");
+      Serial.print("invalid message = [");
+      Serial.print(inChar, HEX);
+      Serial.print("]");
+      Serial.println();
   }
 }
 
