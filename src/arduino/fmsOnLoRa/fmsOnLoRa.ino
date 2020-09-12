@@ -61,7 +61,6 @@ const long motorTimeOut = 100;
 long motor1OnAt = -1; // -1 means not running
 long motor2OnAt = -1; //
 
-
 // reasonable readings of distance sensor (unverified)
 const int MIN_DISTANCE = 6;
 const int MAX_DISTANCE = 200;
@@ -251,18 +250,34 @@ void updateMotors(char inChar) {
     case 'f':
     case 'F':
       moveForward(80);
+      if (lastChar != inChar) {
+        robotFace.clear();
+        robotFace.smile();
+      }
       break;
     case 'b':
     case 'B':
       moveBackwards(80);
+      if (lastChar != inChar) {
+        robotFace.clear();
+        robotFace.smile();
+      }
       break;
     case 'l':
     case 'L':
       turnLeft(80);
+      if (lastChar != inChar) {
+        robotFace.clear();
+        robotFace.eyesLeft();
+      }
       break;
     case 'r':
     case 'R':
       turnRight(80);
+      if (lastChar != inChar) {
+        robotFace.clear();
+        robotFace.eyesRight();
+      }
       break;
     case 'd':
     case 'D':
