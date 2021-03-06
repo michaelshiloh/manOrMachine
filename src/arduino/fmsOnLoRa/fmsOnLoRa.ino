@@ -10,6 +10,7 @@
     12 aug 2020 - ms - transition to Arduino MKRWAN1310: hardware serial, lora radio
     26 aug 2020 - ms - first test MKR - motor controller, sensor works! Next: radio
     30 aug 2020 - ms - radio works receiving commands; next sending sensor data
+    21 oct 2020 - ms - give audible sense of distance
 
     TODO
     - full description
@@ -52,6 +53,9 @@ const int distanceSensorRxPin = 1;
 const int motorControllerTxPin = 2;
 const int motorControllerRxPin = 3;
 const int neoPixelFacePin = 4; // might as well go in order
+const int spkrPinPos = A6;
+const int spkrPinNeg = A3;
+
 
 /*
     Other global variables
@@ -120,17 +124,17 @@ void setup() {
   // while (!Serial);
   pinMode(LED_BUILTIN, OUTPUT);
 
+  // speaker initialization
+  pinMode(spkrPinNeg, OUTPUT);
+  digitalWrite(spkrPinNeg, LOW);
+
   robotFace.init();
 
-  // This would be in motor controller init function
-  motorControllerSerial.begin(9600);
-  pinPeripheral(motorControllerTxPin, PIO_SERCOM_ALT);
-  pinPeripheral(motorControllerRxPin, PIO_SERCOM_ALT);
-  stopBothMotors();
+  motorControllerInit();
 
-  // sensorsInit();
+  sensorsInit();
 
-  //  updateMotors();?? perhaps I meant motorInit?
+  // updateMotors();?? perhaps I meant motorInit?
 
   if (!LoRa.begin(915E6)) {
     Serial.println("Starting LoRa failed!");
@@ -222,6 +226,15 @@ void listenHardwareSerialPort() {
     if (debugPrint & verboseHardwareSerial) Serial.println();
     updateMotors(inChar);
   }
+}
+
+void motorControllerInit() {
+
+  // This would be in motor controller init function
+  motorControllerSerial.begin(9600);
+  pinPeripheral(motorControllerTxPin, PIO_SERCOM_ALT);
+  pinPeripheral(motorControllerRxPin, PIO_SERCOM_ALT);
+  stopBothMotors();
 }
 
 void updateMotors(char inChar) {
