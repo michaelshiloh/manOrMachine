@@ -6,6 +6,7 @@
     05 Nov 2023 - ms - copied from LoRa and removed a ton of stuff
                        face and motors work with commands from
                        serial port; no sensors yet
+    06 Nov 2023 - ms - add sensors
 */
 
 /*
@@ -24,16 +25,16 @@
 const int FACE_NEOPIXEL_PIN = 2;
 const int MC_RCV_PIN = 3; // actually unused
 const int MC_XMIT_PIN = 4; // transmit to motor controller
-const int DIST_SENSOR_0 = A0;
-const int DIST_SENSOR_1 = A1;
-const int DIST_SENSOR_2 = A2;
+const int SENSOR_TRIGGER_PIN = 6;
+const int LEFT_DIST_SENSOR = A0;
+const int MIDDLE_DIST_SENSOR = A1;
+const int RIGHT_DIST_SENSOR = A2;
 
 
 /*
     Other global variables
 */
 const int neoPixelFaceCount = 60;
-const int motorTimeOut = 90;
 
 // reasonable readings of distance sensor (unverified)
 const int MIN_DISTANCE = 6;
@@ -44,14 +45,15 @@ const int verboseDistance = 1;
 const int reportDistance = 2;
 const int verboseMotor = 4;
 const int debugMotor = 8;
-const int verboseMotorTimeout = 16;
+const int verboseMOTORTIMEOUT = 16;
 const int debugSensorReadingTick = 32;
-const int debugPrint = debugSensorReadingTick;
+const int debugPrint = 0;
 
 // for controlling the motors
 const int MYFORWARD = 0;
 const int MYREVERSE = 1;
-int forwardSpeed = 80;
+const int MOTORTIMEOUT = 1000;
+
 
 /*
    global objects
@@ -62,11 +64,14 @@ SoftwareSerial motorControllerSerialPort(MC_RCV_PIN, MC_XMIT_PIN); // RX, TX
 SabertoothMotorController myMotorController(
   MC_RCV_PIN,
   MC_XMIT_PIN,
-  motorTimeOut);
+  MOTORTIMEOUT);
 
 void setup() {
 
   Serial.begin(9600);
+
+  pinMode(SENSOR_TRIGGER_PIN, OUTPUT);
+  digitalWrite(SENSOR_TRIGGER_PIN, LOW);
 
   motorControllerSerialPort.begin(9600);
 
@@ -76,9 +81,42 @@ void setup() {
 
 void loop() {
 
+  // "To command a range cycle, bring the RX pin high
+  // for at least 20us but less than 48 msec. This will
+  // start the sensor chain"
+  digitalWrite(SENSOR_TRIGGER_PIN, HIGH); // takes about 3 us
+  delayMicroseconds(22); // bit of a safety margin
+  digitalWrite(SENSOR_TRIGGER_PIN, LOW);
 
+  // Although the sensors take 49ms to measure, since
+  // it's buffered I can read one after the other
+  int leftDistance = analogRead(LEFT_DIST_SENSOR);
+  delay(1);
+  int dist1 = analogRead(MIDDLE_DIST_SENSOR);
+  delay(1);
+  int rightDistance = analogRead(RIGHT_DIST_SENSOR);
+  delay(1);
 
+  Serial.print("left ");
+  Serial.print(leftDistance);
+  Serial.print("\t");
+  Serial.print(dist1);
+  Serial.print("\t");
+  Serial.print("right ");
+  Serial.print(rightDistance);
+  Serial.println();
 
+  if (abs(leftDistance - rightDistance) < 30) {
+    Serial.println("forward");
+    myMotorController.forward(150);
+  } else if (leftDistance > rightDistance) { // more room on the left so turn that way
+    Serial.println("left");
+    myMotorController.left(150);
+  }
+  else {
+    Serial.println("right");
+    myMotorController.right(150);
+  }
 
   if (Serial.available()) {
     char inChar = (char)Serial.read();
