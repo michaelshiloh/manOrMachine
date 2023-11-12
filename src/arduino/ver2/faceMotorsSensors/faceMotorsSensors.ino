@@ -7,6 +7,8 @@
                        face and motors work with commands from
                        serial port; no sensors yet
     06 Nov 2023 - ms - add sensors
+    11 Nov 2023 - ms - modified sensors to require triggering, to prevent interference
+    12 Nov 2023 - ms - now add some facial expressions
 */
 
 /*
@@ -92,7 +94,7 @@ void loop() {
   // it's buffered I can read one after the other
   int leftDistance = analogRead(LEFT_DIST_SENSOR);
   delay(1);
-  int dist1 = analogRead(MIDDLE_DIST_SENSOR);
+  int frontDistance = analogRead(MIDDLE_DIST_SENSOR);
   delay(1);
   int rightDistance = analogRead(RIGHT_DIST_SENSOR);
   delay(1);
@@ -100,22 +102,43 @@ void loop() {
   Serial.print("left ");
   Serial.print(leftDistance);
   Serial.print("\t");
-  Serial.print(dist1);
+  Serial.print(frontDistance);
   Serial.print("\t");
   Serial.print("right ");
   Serial.print(rightDistance);
   Serial.println();
 
-  if (abs(leftDistance - rightDistance) < 30) {
+  // First check to see if we're stuck
+  if (leftDistance < 20 && frontDistance < 20 && rightDistance < 20 ) {
+    Serial.println("Nowhere to go. I'm stuck");
+    myMotorController.forward(0);
+    robotFace.clear();
+    robotFace.frown();
+  }
+
+  // Is there room to go forward?
+  // Only if there is room in front and the right and left distances are about the same
+  else if (frontDistance > 20 ) { //&& abs(leftDistance - rightDistance) < 20) {
     Serial.println("forward");
     myMotorController.forward(150);
-  } else if (leftDistance > rightDistance) { // more room on the left so turn that way
+    robotFace.clear();
+    robotFace.smile();
+  }
+
+  // Otherwise, figure out which way to turn
+  // This seems to favor right turns. Is that due
+  // to logic or different sensor behavior?
+  else if (leftDistance > rightDistance) { // more room on the left so turn that way
     Serial.println("left");
     myMotorController.left(150);
+    robotFace.clear();
+    robotFace.eyesLeft();
   }
   else {
     Serial.println("right");
     myMotorController.right(150);
+    robotFace.clear();
+    robotFace.eyesRight();
   }
 
   if (Serial.available()) {
@@ -123,26 +146,8 @@ void loop() {
     updateMotors(inChar);
   }
 
-  myMotorController.tick(); // this must be called regularly so all other functions here must not use delay()
+  myMotorController.tick(); // this must be called regularly so never use delay()
 
-  // Serial.println("measure distance");
-  int distance;
-  //  distance = doReadingMyWay();
-
-
-
-  // Only move if the reading is valid
-  if ( distance == constrain( distance, MIN_DISTANCE, MAX_DISTANCE)) {
-
-    //    if (distance > 50) {
-    //
-    //      moveForward(80);
-    //      delay(1000);
-    //    } else {
-    //      turnLeft(80);
-    //      delay(1000);
-    //    }while (inChar != 'R') {
-  }
 }
 
 void listenHardwareSerialPort() {
