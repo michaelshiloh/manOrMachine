@@ -1,15 +1,7 @@
 
 /*
-    using Arduino Uno for simplicity
-    based on the LoRa version
+    Based on faceMotorsSensors
 
-    05 Nov 2023 - ms - copied from LoRa and removed a ton of stuff
-                       face and motors work with commands from
-                       serial port; no sensors yet
-    06 Nov 2023 - ms - add sensors
-    11 Nov 2023 - ms - modified sensors to require triggering,
-                       to prevent interference
-    12 Nov 2023 - ms - now add some facial expressions
     25 Nov 2023 - ms - adding hobby RC receiver and Music Maker Shield.
                        Probably I should switch to Arduino Mega for more
                        memory. Music Maker Shield uses 3, 4, 6, and 7
@@ -24,6 +16,11 @@
     26 Nov 2023 - ms - Arduino Mega has 4 UARTs so no need for software
                        serial but must move motor controller to UART3
                        on pins 14 and 15
+    26 Nov 2023 - ms - Remove EnableInterrupt.h library and use native
+                       attachInterrupt as it conflicts with VS1053 lib
+    26 Nov 2023 - ms - Move channels 1 and 2 to pins 2 and 3 for hardware
+                       interrupts 0 and 1
+                       
 */
 
 /*
@@ -31,28 +28,26 @@
 */
 #include <Adafruit_NeoPixel.h>
 #include <Face.h>
-#include <SabertoothMotorController.h>
-#include <SoftwareSerial.h> // motor controller comms
-#include <Adafruit_VS1053.h> // music maker shield
+#include <SabertoothMotorControllerSerial3.h>
+//#include <Adafruit_VS1053.h> // music maker shield
 #include <SD.h> // music maker shield
 // The hobby RC decoding needs this
 // library by Mike "GreyGnome" Schwager
-#include <EnableInterrupt.h>
+//#include <EnableInterrupt.h>
 
 /*
    Pin usage
 */
 
 const int FACE_NEOPIXEL_PIN = 2;
-const int MC_RCV_PIN = 8; // prior 3; // actually unused
-const int MC_XMIT_PIN = 9; // prior 4; // transmit to motor controller
 const int SENSOR_TRIGGER_PIN = 10; // prior 6;
 const int LEFT_DIST_SENSOR = A0;
 const int MIDDLE_DIST_SENSOR = A1;
 const int RIGHT_DIST_SENSOR = A2;
-const int RC_CH1_PIN = 16;
-const int RC_CH2_PIN = 17;
-const int RC_CH3_PIN = 18;
+// Pins 14 and 15 will be used for Serial port 3
+const int RC_CH1_PIN = 3; // steering
+const int RC_CH2_PIN = 2; // throttle
+const int RC_CH3_PIN = 18; //
 const int RC_CH4_PIN = 19;
 const int RC_CH5_PIN = 20;
 const int RC_CH6_PIN = 21;
@@ -65,7 +60,7 @@ const int RC_NUM_CHANNELS = 6;
 #define CARDCS 4         // Card chip select pin
 // DREQ should be an Int pin, see http://arduino.cc/en/Reference/attachInterrupt
 #define DREQ 3  // VS1053 Data request, ideally an Interrupt pin
-Adafruit_VS1053_FilePlayer musicPlayer = Adafruit_VS1053_FilePlayer(SHIELD_RESET, SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
+//Adafruit_VS1053_FilePlayer musicPlayer = Adafruit_VS1053_FilePlayer(SHIELD_RESET, SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
 
 
 
@@ -103,12 +98,8 @@ const int MOTORTIMEOUT = 1000;
    global objects
 */
 Face robotFace(neoPixelFaceCount, FACE_NEOPIXEL_PIN);
-SoftwareSerial motorControllerSerialPort(MC_RCV_PIN, MC_XMIT_PIN); // RX, TX
 
-SabertoothMotorController myMotorController(
-  MC_RCV_PIN,
-  MC_XMIT_PIN,
-  MOTORTIMEOUT);
+SabertoothMotorControllerSerial3 myMotorController(MOTORTIMEOUT);
 
 // Arrays for storing hobby RC values
 uint16_t rc_values[RC_NUM_CHANNELS];
@@ -123,19 +114,20 @@ void setup() {
   pinMode(SENSOR_TRIGGER_PIN, OUTPUT);
   digitalWrite(SENSOR_TRIGGER_PIN, LOW);
 
-  // Motor controller needs a serial port
-  motorControllerSerialPort.begin(9600);
-  myMotorController.init();
+  //myMotorController.init();
 
   // Neopixels for face
-  robotFace.init();
+  //robotFace.init();
 
   // So the robot can speak
-  setupMusicMakerShield();
+  //setupMusicMakerShield();
+
+  // Read the hobby RC signals
+  setupHobbyRC();
 }
 
-void loop() {
 
+void avoidObstacles() {
   // "To command a range cycle, bring the RX pin high
   // for at least 20us but less than 48 msec. This will
   // start the sensor chain"
@@ -143,8 +135,9 @@ void loop() {
   delayMicroseconds(22); // bit of a safety margin
   digitalWrite(SENSOR_TRIGGER_PIN, LOW);
 
-  // Although the sensors take 49ms to measure, since
-  // it's buffered I can read one after the other
+  // The sensors take 49ms to measure
+  delay(49); // TODO get rid of delay as this hurts responsiveness
+
   int leftDistance = analogRead(LEFT_DIST_SENSOR);
   delay(1);
   int frontDistance = analogRead(MIDDLE_DIST_SENSOR);
@@ -152,14 +145,14 @@ void loop() {
   int rightDistance = analogRead(RIGHT_DIST_SENSOR);
   delay(1);
 
-  Serial.print("left ");
-  Serial.print(leftDistance);
-  Serial.print("\t");
-  Serial.print(frontDistance);
-  Serial.print("\t");
-  Serial.print("right ");
-  Serial.print(rightDistance);
-  Serial.println();
+  //  Serial.print("left ");
+  //  Serial.print(leftDistance);
+  //  Serial.print("\t");
+  //  Serial.print(frontDistance);
+  //  Serial.print("\t");
+  //  Serial.print("right ");
+  //  Serial.print(rightDistance);
+  //  Serial.println();
 
   // First check to see if we're stuck
   if (leftDistance < 20 && frontDistance < 20 && rightDistance < 20 ) {
@@ -172,7 +165,7 @@ void loop() {
   // Is there room to go forward?
   // Only if there is room in front and the right and left distances are about the same
   else if (frontDistance > 20 ) { //&& abs(leftDistance - rightDistance) < 20) {
-    Serial.println("forward");
+    //    Serial.println("forward");
     myMotorController.forward(150);
     robotFace.clear();
     robotFace.smile();
@@ -182,28 +175,44 @@ void loop() {
   // This seems to favor right turns. Is that due
   // to logic or different sensor behavior?
   else if (leftDistance > rightDistance) { // more room on the left so turn that way
-    Serial.println("left");
+    //    Serial.println("left");
     myMotorController.left(150);
     robotFace.clear();
     robotFace.eyesLeft();
   }
   else {
-    Serial.println("right");
+    //    Serial.println("right");
     myMotorController.right(150);
     robotFace.clear();
     robotFace.eyesRight();
   }
+}
 
-  if (Serial.available()) {
-    char inChar = (char)Serial.read();
-    updateMotors(inChar);
+void loop() {
+
+  // Top priority is given to the hobby RC commands:
+  if (hobbyRCCommand()) {
+
+    return;
   }
 
-  myMotorController.tick(); // this must be called regularly so never use delay()
+  // Next priority is given to commands from the
+  // Raspberry Pi
+  if (raspBerryPiCommand()) {
+    return;
+  }
+
+  // Normally, just wander aimlessly avoiding obstacles
+  //avoidObstacles();
+
+  // and keep the motors running
+  // this must be called regularly so never use delay()
+  myMotorController.tick();
 
 }
 
-void listenHardwareSerialPort() {
+// Commands from the Raspberry Pi or the serial monitor
+bool raspBerryPiCommand() {
   // read the character we receive on the serial port from the RPi
   if (Serial.available()) {
     char inChar = (char)Serial.read();
@@ -213,11 +222,26 @@ void listenHardwareSerialPort() {
     if (debugPrint & verboseMotor) Serial.println();
 
     updateMotors(inChar);
+    return (true);
   }
+  return (false);
 }
 
+bool hobbyRCCommand() {
 
+  rc_read_values();
 
+  // Right now just print them out
+  Serial.print("CH1:"); Serial.print(rc_values[RC_CH1]); Serial.print("\t\t");
+  Serial.print("CH2:"); Serial.print(rc_values[RC_CH2]); Serial.print("\t\t");
+  Serial.print("CH3:"); Serial.print(rc_values[RC_CH3]); Serial.print("\t\t");
+  Serial.print("CH4:"); Serial.print(rc_values[RC_CH4]); Serial.print("\t\t");
+  Serial.print("CH5:"); Serial.print(rc_values[RC_CH5]); Serial.print("\t\t");
+  Serial.print("CH6:"); Serial.println(rc_values[RC_CH6]);
+  delay(200); // TODO get rid of this
+  return (false); // later will override if needed
+
+}
 
 void updateMotors(char inChar) {
   /*
@@ -274,11 +298,13 @@ void updateMotors(char inChar) {
 }
 
 void setupMusicMakerShield() {
-  if (!musicPlayer.begin()) {  // initialise the music player
-    Serial.println(F("Couldn't find VS1053, do you have the right pins defined?"));
-    while (1)
-      ;
-  }
+  //Commented out for now until I fix the interrupt vector redefinition error
+
+  //  if (!musicPlayer.begin()) {  // initialise the music player
+  //    Serial.println(F("Couldn't find VS1053, do you have the right pins defined?"));
+  //    while (1)
+  //      ;
+  //  }
   Serial.println(F("VS1053 found"));
 
   if (!SD.begin(CARDCS)) {
@@ -288,14 +314,14 @@ void setupMusicMakerShield() {
   }
 
   // Set volume for left, right channels. lower numbers == louder volume!
-  musicPlayer.setVolume(20, 20);
+  //  musicPlayer.setVolume(20, 20);
 
   // Timer interrupts are not suggested, better to use DREQ interrupt!
   //musicPlayer.useInterrupt(VS1053_FILEPLAYER_TIMER0_INT); // timer int
 
   // If DREQ is on an interrupt pin (on uno, #2 or #3) we can do background
   // audio playing
-  musicPlayer.useInterrupt(VS1053_FILEPLAYER_PIN_INT);  // DREQ int
+  //  musicPlayer.useInterrupt(VS1053_FILEPLAYER_PIN_INT);  // DREQ int
 }
 
 // Hobby RC functions
@@ -341,10 +367,17 @@ void setupHobbyRC() {
   pinMode(RC_CH5_PIN, INPUT);
   pinMode(RC_CH6_PIN, INPUT);
 
-  enableInterrupt(RC_CH1_PIN, calc_ch1, CHANGE);
-  enableInterrupt(RC_CH2_PIN, calc_ch2, CHANGE);
-  enableInterrupt(RC_CH3_PIN, calc_ch3, CHANGE);
-  enableInterrupt(RC_CH4_PIN, calc_ch4, CHANGE);
-  enableInterrupt(RC_CH5_PIN, calc_ch5, CHANGE);
-  enableInterrupt(RC_CH6_PIN, calc_ch6, CHANGE);
+  //  enableInterrupt(RC_CH1_PIN, calc_ch1, CHANGE);
+  //  enableInterrupt(RC_CH2_PIN, calc_ch2, CHANGE);
+  //  enableInterrupt(RC_CH3_PIN, calc_ch3, CHANGE);
+  //  enableInterrupt(RC_CH4_PIN, calc_ch4, CHANGE);
+  //  enableInterrupt(RC_CH5_PIN, calc_ch5, CHANGE);
+  //  enableInterrupt(RC_CH6_PIN, calc_ch6, CHANGE);
+
+  attachInterrupt(digitalPinToInterrupt(RC_CH6_PIN), calc_ch6, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(RC_CH5_PIN), calc_ch5, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(RC_CH4_PIN), calc_ch4, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(RC_CH3_PIN), calc_ch3, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(RC_CH2_PIN), calc_ch2, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(RC_CH1_PIN), calc_ch1, CHANGE);
 }
