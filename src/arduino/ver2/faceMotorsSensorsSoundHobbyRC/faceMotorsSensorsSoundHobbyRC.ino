@@ -15,12 +15,19 @@
     26 Nov 2023 - ms - Add code for hobby RC and MMS
     26 Nov 2023 - ms - Arduino Mega has 4 UARTs so no need for software
                        serial but must move motor controller to UART3
-                       on pins 14 and 15
+                       on pins 14 and 15. Rx pin is not used. Tx
+                       was on pin 4 (blue) move to pin 14
     26 Nov 2023 - ms - Remove EnableInterrupt.h library and use native
                        attachInterrupt as it conflicts with VS1053 lib
     26 Nov 2023 - ms - Move channels 1 and 2 to pins 2 and 3 for hardware
-                       interrupts 0 and 1
-                       
+                       interrupts 0 and 1. this requires moving NeoPixel
+                       from pin 2 (yellow) elsewhere; let's put it on pin 16
+    26 Nov 2023 - ms - use header strip for motor controller TX and
+                       NeoPixel
+                       MC TX (blue) = 14
+                       NP  (yellow) = 16
+     oh no the music maker shield wants an interrupt pin as well....
+
 */
 
 /*
@@ -29,17 +36,15 @@
 #include <Adafruit_NeoPixel.h>
 #include <Face.h>
 #include <SabertoothMotorControllerSerial3.h>
-//#include <Adafruit_VS1053.h> // music maker shield
+#include <Adafruit_VS1053.h> // music maker shield
 #include <SD.h> // music maker shield
-// The hobby RC decoding needs this
-// library by Mike "GreyGnome" Schwager
-//#include <EnableInterrupt.h>
+
 
 /*
    Pin usage
 */
 
-const int FACE_NEOPIXEL_PIN = 2;
+const int FACE_NEOPIXEL_PIN = 16;
 const int SENSOR_TRIGGER_PIN = 10; // prior 6;
 const int LEFT_DIST_SENSOR = A0;
 const int MIDDLE_DIST_SENSOR = A1;
@@ -59,7 +64,7 @@ const int RC_NUM_CHANNELS = 6;
 #define SHIELD_DCS 6     // VS1053 Data/command select pin (output)
 #define CARDCS 4         // Card chip select pin
 // DREQ should be an Int pin, see http://arduino.cc/en/Reference/attachInterrupt
-#define DREQ 3  // VS1053 Data request, ideally an Interrupt pin
+//#define DREQ 3  // VS1053 Data request, ideally an Interrupt pin
 //Adafruit_VS1053_FilePlayer musicPlayer = Adafruit_VS1053_FilePlayer(SHIELD_RESET, SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
 
 
@@ -114,7 +119,7 @@ void setup() {
   pinMode(SENSOR_TRIGGER_PIN, OUTPUT);
   digitalWrite(SENSOR_TRIGGER_PIN, LOW);
 
-  //myMotorController.init();
+  myMotorController.init();
 
   // Neopixels for face
   //robotFace.init();
@@ -238,8 +243,28 @@ bool hobbyRCCommand() {
   Serial.print("CH4:"); Serial.print(rc_values[RC_CH4]); Serial.print("\t\t");
   Serial.print("CH5:"); Serial.print(rc_values[RC_CH5]); Serial.print("\t\t");
   Serial.print("CH6:"); Serial.println(rc_values[RC_CH6]);
-  delay(200); // TODO get rid of this
+
+  // Map the RC signal to the motor controller
+  if (rc_values[RC_CH1] > 1600) {
+    Serial.print("right!");
+    myMotorController.right(80);
+  } else if (rc_values[RC_CH1] < 1400) {
+    Serial.print("left!");
+    myMotorController.left(80);
+  }
+
+  if (rc_values[RC_CH2] < 1400) {
+    Serial.print("forward!");
+    int speed = map(constrain( rc_values[RC_CH2], 900, 1400), 900, 1400, 0, 255);
+    myMotorController.forward(speed);
+  } else if (rc_values[RC_CH2] > 1600) {
+    Serial.print("backward!");
+    int speed = map(constrain( rc_values[RC_CH2], 900, 1400), 900, 1400, 0, 255);
+    myMotorController.backward(speed);
+  }
+
   return (false); // later will override if needed
+
 
 }
 
