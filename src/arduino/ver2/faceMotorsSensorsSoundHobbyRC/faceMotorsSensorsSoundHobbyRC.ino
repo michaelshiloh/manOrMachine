@@ -26,7 +26,10 @@
                        NeoPixel
                        MC TX (blue) = 14
                        NP  (yellow) = 16
-     oh no the music maker shield wants an interrupt pin as well....
+
+
+TODO
+1. oh no the music maker shield wants an interrupt pin as well....
 
 */
 
@@ -90,7 +93,7 @@ const int debugPrint = 0;
 // for controlling the motors
 const int MYFORWARD = 0;
 const int MYREVERSE = 1;
-const int MOTORTIMEOUT = 1000;
+const int MOTORTIMEOUT = 100;
 
 // Indexes into the array of hobby RC radio channels
 #define RC_CH1  0
@@ -255,12 +258,12 @@ bool hobbyRCCommand() {
 
   if (rc_values[RC_CH2] < 1400) {
     Serial.print("forward!");
-    int speed = map(constrain( rc_values[RC_CH2], 900, 1400), 900, 1400, 0, 255);
-    myMotorController.forward(speed);
+    int go = map(constrain( rc_values[RC_CH2], 900, 1400), 1400, 900, 0, 255);
+    myMotorController.forward(go);
   } else if (rc_values[RC_CH2] > 1600) {
     Serial.print("backward!");
-    int speed = map(constrain( rc_values[RC_CH2], 900, 1400), 900, 1400, 0, 255);
-    myMotorController.backward(speed);
+    int go = map(constrain( rc_values[RC_CH2], 1600, 2000), 1600, 2000, 0, 255);
+    myMotorController.backward(go);
   }
 
   return (false); // later will override if needed
