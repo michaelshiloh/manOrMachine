@@ -26,10 +26,18 @@
                        NeoPixel
                        MC TX (blue) = 14
                        NP  (yellow) = 16
+    27 Nov 2023 - ms - Problem: Changing NeoPixels messes up the hobby RC
+                       readings. Workaround by changing them only when knob
+                       rotates to a different position. It still jerks
+                       occassionally but at least I can choose when to do this
 
 
-TODO
-1. oh no the music maker shield wants an interrupt pin as well....
+  TODO
+  1. Music maker shield needs an interrupt pin so remove channel 6
+  because my transmitter only has 5 channels anyway
+  2. Fix or workaround Neopixel bug
+  3. Faster steering
+  4. Charge all batteries
 
 */
 
@@ -48,7 +56,7 @@ TODO
 */
 
 const int FACE_NEOPIXEL_PIN = 16;
-const int SENSOR_TRIGGER_PIN = 10; // prior 6;
+const int SENSOR_TRIGGER_PIN = 7;
 const int LEFT_DIST_SENSOR = A0;
 const int MIDDLE_DIST_SENSOR = A1;
 const int RIGHT_DIST_SENSOR = A2;
@@ -59,7 +67,6 @@ const int RC_CH3_PIN = 18; //
 const int RC_CH4_PIN = 19;
 const int RC_CH5_PIN = 20;
 const int RC_CH6_PIN = 21;
-const int RC_NUM_CHANNELS = 6;
 
 // Adafruit music maker shield
 #define SHIELD_RESET -1  // VS1053 reset pin (unused!)
@@ -75,6 +82,9 @@ const int RC_NUM_CHANNELS = 6;
 /*
     Other global variables
 */
+
+// How many radio channels
+const int RC_NUM_CHANNELS = 6;
 const int neoPixelFaceCount = 60;
 
 // reasonable readings of distance sensor (unverified)
@@ -102,6 +112,17 @@ const int MOTORTIMEOUT = 100;
 #define RC_CH4  3
 #define RC_CH5  4
 #define RC_CH6  5
+
+// Face expressions
+
+const int FACE_STATE_SMILE = 0;
+const int FACE_STATE_FROWN = 1;
+const int FACE_STATE_EYES_LEFT = 2;
+const int FACE_STATE_EYES_RIGHT = 3;
+const int FACE_STATE_FLAG = 4;
+int newFaceState = FACE_STATE_SMILE;
+int presentFaceState = -1;
+
 /*
    global objects
 */
@@ -125,13 +146,35 @@ void setup() {
   myMotorController.init();
 
   // Neopixels for face
-  //robotFace.init();
+  robotFace.init();
 
   // So the robot can speak
   //setupMusicMakerShield();
 
   // Read the hobby RC signals
   setupHobbyRC();
+}
+
+void loop() {
+
+  // Top priority is given to the hobby RC commands:
+  if (hobbyRCCommand()) {
+    return;
+  }
+
+  // Next priority is given to commands from the
+  // Raspberry Pi
+  if (raspBerryPiCommand()) {
+    return;
+  }
+
+  // Normally, just wander aimlessly avoiding obstacles
+  //avoidObstacles();
+
+  // and keep the motors running
+  // this must be called regularly so never use delay()
+  myMotorController.tick();
+
 }
 
 
@@ -196,28 +239,7 @@ void avoidObstacles() {
   }
 }
 
-void loop() {
 
-  // Top priority is given to the hobby RC commands:
-  if (hobbyRCCommand()) {
-
-    return;
-  }
-
-  // Next priority is given to commands from the
-  // Raspberry Pi
-  if (raspBerryPiCommand()) {
-    return;
-  }
-
-  // Normally, just wander aimlessly avoiding obstacles
-  //avoidObstacles();
-
-  // and keep the motors running
-  // this must be called regularly so never use delay()
-  myMotorController.tick();
-
-}
 
 // Commands from the Raspberry Pi or the serial monitor
 bool raspBerryPiCommand() {
@@ -244,18 +266,44 @@ bool hobbyRCCommand() {
   Serial.print("CH2:"); Serial.print(rc_values[RC_CH2]); Serial.print("\t\t");
   Serial.print("CH3:"); Serial.print(rc_values[RC_CH3]); Serial.print("\t\t");
   Serial.print("CH4:"); Serial.print(rc_values[RC_CH4]); Serial.print("\t\t");
-  Serial.print("CH5:"); Serial.print(rc_values[RC_CH5]); Serial.print("\t\t");
-  Serial.print("CH6:"); Serial.println(rc_values[RC_CH6]);
-
-  // Map the RC signal to the motor controller
+  Serial.print("CH5:"); Serial.print(rc_values[RC_CH5]); Serial.println("\t\t");
+  //Serial.print("CH6:"); Serial.println(rc_values[RC_CH6]);
+  /*
+    // This is a bug, as it doesn't happen with the raw decoding example
+    // but until I find that bug, this hack:
+    // If either the throttle or the steering wheel are outside of a reasonable
+    // range set them to 1500
+    if (rc_values[RC_CH1] > 2100 || rc_values[RC_CH1] < 900) {
+      rc_values[RC_CH1] = 1500;
+      //while(1);
+    }
+    if (rc_values[RC_CH2] > 2100 || rc_values[RC_CH2] < 900) {
+      rc_values[RC_CH2] = 1500;
+      //while(1);
+    }
+    if (rc_values[RC_CH3] > 2100 || rc_values[RC_CH3] < 900) {
+      rc_values[RC_CH3] = 1500;
+      //while(1);
+    }
+    if (rc_values[RC_CH4] > 2100 || rc_values[RC_CH4] < 900) {
+      rc_values[RC_CH4] = 1500;
+      //while(1);
+    }
+    if (rc_values[RC_CH5] > 2100 || rc_values[RC_CH5] < 900) {
+      rc_values[RC_CH5] = 1500;
+      //while(1);
+    }
+  */
+  // Channel 1 is the steering wheel
   if (rc_values[RC_CH1] > 1600) {
     Serial.print("right!");
-    myMotorController.right(80);
+    myMotorController.right(180);
   } else if (rc_values[RC_CH1] < 1400) {
     Serial.print("left!");
-    myMotorController.left(80);
+    myMotorController.left(180);
   }
 
+  // Channel 2 is the throttle
   if (rc_values[RC_CH2] < 1400) {
     Serial.print("forward!");
     int go = map(constrain( rc_values[RC_CH2], 900, 1400), 1400, 900, 0, 255);
@@ -266,8 +314,49 @@ bool hobbyRCCommand() {
     myMotorController.backward(go);
   }
 
-  return (false); // later will override if needed
+  // Channel 3 is the knob
+  if (rc_values[RC_CH3] < 1100) {
+    Serial.print("smile!");
+    newFaceState = FACE_STATE_SMILE;
+  }
+  if (rc_values[RC_CH3] > 1100 && rc_values[RC_CH3] < 1300) {
+    Serial.print("frown!");
+    newFaceState = FACE_STATE_FROWN;
+  }
+  if (rc_values[RC_CH3] > 1300 && rc_values[RC_CH3] < 1500) {
+    Serial.print("flag!");
+    newFaceState = FACE_STATE_FLAG;
+  }
 
+  if (newFaceState != presentFaceState) {
+    switch (newFaceState) {
+      case FACE_STATE_SMILE:
+        robotFace.clear();
+        robotFace.smile();
+        break;
+      case FACE_STATE_EYES_RIGHT:
+        robotFace.clear();
+        robotFace.eyesRight();
+        break;
+      case FACE_STATE_EYES_LEFT:
+        robotFace.clear();
+        robotFace.eyesLeft();
+        break;
+      case FACE_STATE_FROWN:
+        robotFace.clear();
+        robotFace.frown();
+        break;
+      case FACE_STATE_FLAG:
+        robotFace.clear();
+        robotFace.flag();
+        break;
+      default:
+        Serial.println("Invalid face state");
+    }
+    presentFaceState = newFaceState;
+  }
+
+  return (false); // later will override if needed
 
 }
 
