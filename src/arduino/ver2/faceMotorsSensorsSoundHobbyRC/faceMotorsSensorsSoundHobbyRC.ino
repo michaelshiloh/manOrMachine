@@ -30,14 +30,15 @@
                        readings. Workaround by changing them only when knob
                        rotates to a different position. It still jerks
                        occassionally but at least I can choose when to do this
+    14 Dec 2023 - ms - Add 4 momentary switches using internal pullup resistors
 
 
   TODO
   1. Music maker shield needs an interrupt pin so remove channel 6
   because my transmitter only has 5 channels anyway
-  2. Fix or workaround Neopixel bug
+  2. Sending Neopixel commands messes up RC decoding
   3. Faster steering
-  4. Charge all batteries
+
 
 */
 
@@ -54,6 +55,17 @@
 /*
    Pin usage
 */
+//// unused pins
+// 5, 8, 9
+
+// Front panel switches
+const int BUTTON_ONE_PIN = 10;
+const int BUTTON_TWO_PIN = 11;
+const int BUTTON_THREE_PIN = 12;
+const int BUTTON_FOUR_PIN = 13;
+
+// The Music Maker Shield uses SPI which is on pins
+// 50, 51, 52, and 53 on the Mega
 
 const int FACE_NEOPIXEL_PIN = 16;
 const int SENSOR_TRIGGER_PIN = 7;
@@ -83,11 +95,11 @@ const int RC_CH6_PIN = 21;
     Other global variables
 */
 
-// How many radio channels
-const int RC_NUM_CHANNELS = 6;
-const int neoPixelFaceCount = 60;
 
-// reasonable readings of distance sensor (unverified)
+const int RC_NUM_CHANNELS = 6;    // How many radio channels
+const int neoPixelFaceCount = 60; // How many NeoPixels
+
+// Hopefully reasonable readings of distance sensor (unverified)
 const int MIN_DISTANCE = 6;
 const int MAX_DISTANCE = 200;
 
@@ -115,11 +127,14 @@ const int MOTORTIMEOUT = 100;
 
 // Face expressions
 
-const int FACE_STATE_SMILE = 0;
-const int FACE_STATE_FROWN = 1;
-const int FACE_STATE_EYES_LEFT = 2;
-const int FACE_STATE_EYES_RIGHT = 3;
-const int FACE_STATE_FLAG = 4;
+const int FACE_STATE_SURPRISED = 0;
+const int FACE_STATE_ANGRY = 1;
+const int FACE_STATE_SMILE = 2;
+const int FACE_STATE_FROWN = 3;
+const int FACE_STATE_EYES_LEFT = 4;
+const int FACE_STATE_EYES_RIGHT = 5;
+const int FACE_STATE_FLAG = 6;
+const int FACE_STATE_FLAG_COLOURS = 7;
 int newFaceState = FACE_STATE_SMILE;
 int presentFaceState = -1;
 
@@ -153,9 +168,81 @@ void setup() {
 
   // Read the hobby RC signals
   setupHobbyRC();
+
+  // And finally the front panels switches
+  pinMode(BUTTON_ONE_PIN, INPUT_PULLUP);
+  pinMode(BUTTON_TWO_PIN, INPUT_PULLUP);
+  pinMode(BUTTON_THREE_PIN, INPUT_PULLUP);
+  pinMode(BUTTON_FOUR_PIN, INPUT_PULLUP);
 }
 
 void loop() {
+  Serial.print("new = " );
+  Serial.print(newFaceState );
+  Serial.print("present = " );
+  Serial.println(presentFaceState );
+
+
+  // For the end of semester party, allow the switches to
+  // control the face
+
+  if (!digitalRead(BUTTON_ONE_PIN)) {
+    Serial.println("BUTTON_ONE_PIN" );
+    newFaceState = FACE_STATE_SURPRISED;
+  }
+  if (!digitalRead(BUTTON_TWO_PIN)) {
+    Serial.println("BUTTON_TWO_PIN" );
+    newFaceState = FACE_STATE_ANGRY;
+  }
+  if (!digitalRead(BUTTON_THREE_PIN)) {
+    Serial.println("BUTTON_THREE_PIN" );
+    newFaceState = FACE_STATE_EYES_LEFT;
+  }
+  if (!digitalRead(BUTTON_FOUR_PIN)) {
+    Serial.println("BUTTON_FOUR_PIN" );
+    newFaceState = FACE_STATE_FLAG;
+  }
+
+  if (newFaceState != presentFaceState) {
+    switch (newFaceState) {
+      case FACE_STATE_SURPRISED:
+        robotFace.clear();
+        robotFace.surprised();
+        break;
+      case FACE_STATE_ANGRY:
+        robotFace.clear();
+        robotFace.angry();
+        break;
+      case FACE_STATE_SMILE:
+        robotFace.clear();
+        robotFace.smile();
+        break;
+      case FACE_STATE_FROWN:
+        robotFace.clear();
+        robotFace.frown();
+        break;
+      case FACE_STATE_EYES_LEFT:
+        robotFace.clear();
+        robotFace.eyesLeft();
+        break;
+      case FACE_STATE_EYES_RIGHT:
+        robotFace.clear();
+        robotFace.eyesRight();
+        break;
+      case FACE_STATE_FLAG:
+        robotFace.clear();
+        robotFace.flag();
+        break;
+      case FACE_STATE_FLAG_COLOURS:
+        robotFace.clear();
+        robotFace.flagColours();
+        break;
+      default:
+        Serial.println("Invalid face state");
+    }
+    presentFaceState = newFaceState;
+
+  }
 
   // Top priority is given to the hobby RC commands:
   if (hobbyRCCommand()) {
@@ -313,49 +400,73 @@ bool hobbyRCCommand() {
     int go = map(constrain( rc_values[RC_CH2], 1600, 2000), 1600, 2000, 0, 255);
     myMotorController.backward(go);
   }
-
+/*
   // Channel 3 is the knob
-  if (rc_values[RC_CH3] < 1100) {
+  if (rc_values[RC_CH3] > 900rc_values[RC_CH3] < 1100) {
     Serial.print("smile!");
+    newFaceState = FACE_STATE_ANGRY;
+  }
+  if (rc_values[RC_CH3] > 1100 && rc_values[RC_CH3] < 1250) {
+    Serial.print("frown!");
     newFaceState = FACE_STATE_SMILE;
   }
-  if (rc_values[RC_CH3] > 1100 && rc_values[RC_CH3] < 1300) {
-    Serial.print("frown!");
+  if (rc_values[RC_CH3] > 1250 && rc_values[RC_CH3] < 1400) {
+    Serial.print("flag!");
     newFaceState = FACE_STATE_FROWN;
   }
-  if (rc_values[RC_CH3] > 1300 && rc_values[RC_CH3] < 1500) {
+  if (rc_values[RC_CH3] > 1400 && rc_values[RC_CH3] < 1550) {
+    Serial.print("frown!");
+    newFaceState = FACE_STATE_EYES_LEFT;
+  }
+  if (rc_values[RC_CH3] > 1550 && rc_values[RC_CH3] < 1700) {
+    Serial.print("frown!");
+    newFaceState = FACE_STATE_EYES_RIGHT;
+  }
+  if (rc_values[RC_CH3] > 1700 && rc_values[RC_CH3] < 1850) {
     Serial.print("flag!");
     newFaceState = FACE_STATE_FLAG;
+  }
+  if (rc_values[RC_CH3] > 1850) {
+    Serial.print("flag!");
+    newFaceState = FACE_STATE_FLAG_COLOURS;
   }
 
   if (newFaceState != presentFaceState) {
     switch (newFaceState) {
+      case FACE_STATE_ANGRY:
+        robotFace.clear();
+        robotFace.angry();
+        break;
       case FACE_STATE_SMILE:
         robotFace.clear();
         robotFace.smile();
-        break;
-      case FACE_STATE_EYES_RIGHT:
-        robotFace.clear();
-        robotFace.eyesRight();
-        break;
-      case FACE_STATE_EYES_LEFT:
-        robotFace.clear();
-        robotFace.eyesLeft();
         break;
       case FACE_STATE_FROWN:
         robotFace.clear();
         robotFace.frown();
         break;
+      case FACE_STATE_EYES_LEFT:
+        robotFace.clear();
+        robotFace.eyesLeft();
+        break;
+      case FACE_STATE_EYES_RIGHT:
+        robotFace.clear();
+        robotFace.eyesRight();
+        break;
       case FACE_STATE_FLAG:
         robotFace.clear();
         robotFace.flag();
+        break;
+      case FACE_STATE_FLAG_COLOURS:
+        robotFace.clear();
+        robotFace.flagColours();
         break;
       default:
         Serial.println("Invalid face state");
     }
     presentFaceState = newFaceState;
   }
-
+*/
   return (false); // later will override if needed
 
 }
