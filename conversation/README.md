@@ -47,10 +47,10 @@ about engaging with a robot?
 ## Question 4
 **Robot**: "Curiosity is wonderful! What are you most curious about when it comes to robots?"
 
-- Their capabilities
-- How they learn
-- Their impact on society
-- Other
+1. Their capabilities
+1. How they learn
+1. Their impact on society
+1. Other
 
 - If the human answers *Their capabilities* then proceed with *Question 11*.
 - If the human answers *How they learn* then proceed with *Question 12*.
