@@ -29,15 +29,61 @@ about engaging with a robot?
 - If the human answers `Apprehensive` then proceed with Question 5
 - If the human answers `Something Else` then proceed with Question 6
 
-
 ## Question 3
-**Robot**: That's wonderful! 
+**Robot**: "That’s great to hear! What excites you the most about technology?"
+
+1. New Gadgets
+2. AI Advancements
+3. Robotics
+4. Other
+
+- If the human answers *New Gadgets* then proceed with *Question 7*.
+- If the human answers *AI Advancements* then proceed with *Question 8*.
+- If the human answers *Robotics* then proceed with *Question 9*.
+- If the human answers *Other* then proceed with *Question 10*.
+
+---
 
 ## Question 4
-**Robot**: 
+**Robot**: "Curiosity is wonderful! What are you most curious about when it comes to robots?"
 
-## Question 5
-**Robot**: 
+- Their capabilities
+- How they learn
+- Their impact on society
+- Other
 
-## Question 6
-**Robot**: 
+- If the human answers *Their capabilities* then proceed with *Question 11*.
+- If the human answers *How they learn* then proceed with *Question 12*.
+- If the human answers *Their impact on society* then proceed with *Question 13*.
+- If the human answers *Other* then proceed with *Question 14*.
+
+---
+
+## Question 5:
+**Robot**: "I understand that it can be a bit daunting. What makes you feel apprehensive about robots?"
+
+- Job displacement
+- Lack of emotions
+- Safety concerns
+- Other
+
+- If the human answers *Job displacement* then proceed with *Question 15*.
+- If the human answers *Lack of emotions* then proceed with *Question 16*.
+- If the human answers *Safety concerns* then proceed with *Question 17*.
+- If the human answers *Other* then proceed with *Question 18*.
+
+---
+
+## Question 6:
+**Robot**: "That’s interesting! Can you elaborate on what you mean by 'something else'?"
+
+- I’m not sure
+- I think it’s cool
+- I have mixed feelings
+- Other
+
+- If the human answers *I’m not sure* then proceed with *Question 19*.
+- If the human answers *I think it’s cool* then proceed with *Question 20*.
+- If the human answers *I have mixed feelings* then proceed with *Question 21*.
+- If the human answers *Other* then proceed with *Question 22*.
+
