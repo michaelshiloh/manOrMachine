@@ -87,3 +87,7 @@ about engaging with a robot?
 - If the human answers *I have mixed feelings* then proceed with *Question 21*.
 - If the human answers *Other* then proceed with *Question 22*.
 
+
+# Personality Creation Station
+
+![](images/blockProgramming.png)
