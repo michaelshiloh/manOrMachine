@@ -62,10 +62,10 @@ about engaging with a robot?
 ## Question 5:
 **Robot**: "I understand that it can be a bit daunting. What makes you feel apprehensive about robots?"
 
-- Job displacement
-- Lack of emotions
-- Safety concerns
-- Other
+1. Job displacement
+1. Lack of emotions
+1. Safety concerns
+1. Other
 
 - If the human answers *Job displacement* then proceed with *Question 15*.
 - If the human answers *Lack of emotions* then proceed with *Question 16*.
@@ -77,10 +77,10 @@ about engaging with a robot?
 ## Question 6:
 **Robot**: "That’s interesting! Can you elaborate on what you mean by 'something else'?"
 
-- I’m not sure
-- I think it’s cool
-- I have mixed feelings
-- Other
+1. I’m not sure
+1. I think it’s cool
+1. I have mixed feelings
+1. Other
 
 - If the human answers *I’m not sure* then proceed with *Question 19*.
 - If the human answers *I think it’s cool* then proceed with *Question 20*.
