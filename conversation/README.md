@@ -1,4 +1,3 @@
-<h1>
 ## What might a conversation look like with the robot?
 
 
@@ -30,4 +29,3 @@ If the human answers `Curious` then proceed with Question 4
 If the human answers `Apprehensive` then proceed with Question 5
 If the human answers `Something Else` then proceed with Question 6
 
-</h1>
