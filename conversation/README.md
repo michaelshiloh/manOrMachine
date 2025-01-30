@@ -7,7 +7,7 @@ Proceed to Question 1
 
 ## Question 1
 **Robot**: Hello! I am a robot! I would like to have a conversation with you.
-Can I ask you some questions
+Can I ask you some questions?
 
 1. Yes
 2. No
@@ -17,7 +17,7 @@ Can I ask you some questions
 
 ## Question 2
 **Robot**: Thank you for your willingness to engage with me. How do you feel
-about engaging with a robot:
+about engaging with a robot?
 
 1. Excited
 2. Curious
@@ -29,3 +29,15 @@ about engaging with a robot:
 - If the human answers `Apprehensive` then proceed with Question 5
 - If the human answers `Something Else` then proceed with Question 6
 
+
+## Question 3
+**Robot**: That's wonderful! 
+
+## Question 4
+**Robot**: 
+
+## Question 5
+**Robot**: 
+
+## Question 6
+**Robot**: 
