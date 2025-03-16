@@ -39,7 +39,7 @@
 	Debug
 	- Set to `true` for Serial output
 */
-const bool debug = false;
+const bool debug = true;
 
 
 /*
@@ -62,8 +62,8 @@ const int FACE_NEOPIXEL_PIN = 16;
 const int RC_CH1_PIN = 21;  // Steering (was set to pin 3) [min=980 max=2036]
 const int RC_CH2_PIN = 2;   // Throttle [min=975 max=2036]
 const int RC_CH3_PIN = 18;  // Small knob (VR) [min=902 max=1900]
-const int RC_CH4_PIN = 19;  // Silver circular button (SWA) [min=976 max=2036]
-const int RC_CH5_PIN = 20;  // Long clear button (SWD) [min=976 max=2036]
+const int RC_CH4_PIN = 19;  // Silver circular button (SWA) [min=976 max=2036] (1ms when not pressed, 2ms when pressed)
+const int RC_CH5_PIN = 20;  // Long clear button (SWD) [min=976 max=2036] (1ms when not pressed, 2ms when pressed)
 
 // Adafruit music maker shield
 #define SHIELD_RESET -1  // VS1053 reset pin (unused!)
@@ -129,10 +129,6 @@ uint16_t rc_values[RC_NUM_CHANNELS];
 uint32_t rc_start[RC_NUM_CHANNELS];
 volatile uint16_t rc_shared[RC_NUM_CHANNELS];
 
-
-
-
-
 // Define states
 //
 //
@@ -143,7 +139,6 @@ const int STATE_CONV_1 = 1;
 const int STATE_CONV_2 = 2;
 const int STATE_CONV_3 = 3;
 const int STATE_CONV_4 = 4;
-
 int currentState;
 
 // Define radio commands
@@ -178,7 +173,7 @@ void setup() {
 void loop() {
 
   // Check if the radio is sending any command
-  switch (getRadioCommand()) {
+  switch (hobbyRCCommand()) {
 
     case RADIO_COMMAND_NONE:
       // don't change state
@@ -190,21 +185,25 @@ void loop() {
 
     case RADIO_COMMAND_INIT_CONV:
       currentState = STATE_CONV_1;
+      if (debug) Serial.println("radio requested initiating conversation");
       break;
 
     default:
-      // Indicate an error
+      if (debug) Serial.println("unexpected return value from hobbyRCCommand()");
       break;
   }
 
   switch (currentState) {
+          if (debug) Serial.print("currentState = ");
+          if (debug) Serial.println(currentState);
+
 
     case STATE_IDLE:
       // do nothing
       break;
 
     case STATE_DRIVE:
-      drive();
+      //drive(); // nothing to do since it's already driving
       break;
 
       case STATE_CONV_1:
@@ -305,7 +304,14 @@ void setupHobbyRC() {
   attachInterrupt(digitalPinToInterrupt(RC_CH1_PIN), calc_ch1, CHANGE);
 }
 
-bool drive() {
+
+/* check the hobby RC receiver, and see if we have any commands. 
+If there is a command to drive, do so immediately, and return the drive state.
+If there is a command to start a conversation, return the start conversation state
+Otherwise, return none
+*/
+bool hobbyRCCommand() {
+  int retval= RADIO_COMMAND_NONE; // are we driving, idling, or entering command mode?
 
 	rc_read_values();
 
@@ -324,11 +330,13 @@ bool drive() {
 			Serial.print("right!");
 		}
 		myMotorController.right(180);
+    retval = RADIO_COMMAND_DRIVE;
 	} else if (rc_values[RC_CH1] < 1400) {
 		if (debug) {
 			Serial.print("left!");
 		}
 		myMotorController.left(180);
+    retval = RADIO_COMMAND_DRIVE;
 	}
 
 	// Channel 2 is the throttle
@@ -338,11 +346,15 @@ bool drive() {
 		}
 		int go = map(constrain( rc_values[RC_CH2], 900, 1400), 1400, 900, 0, 255);
 		myMotorController.forward(go);
+    retval = RADIO_COMMAND_DRIVE;
 	} else if (rc_values[RC_CH2] > 1600) {
 		if (debug) {
 			Serial.print("backward!");
 		}
 		int go = map(constrain( rc_values[RC_CH2], 1600, 2000), 1600, 2000, 0, 255);
 		myMotorController.backward(go);
+    retval = RADIO_COMMAND_DRIVE;
 	}
+
+  return (retval);
 }
