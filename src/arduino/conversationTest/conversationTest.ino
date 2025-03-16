@@ -19,12 +19,6 @@
 	as a dependency).
 */
 
-
-
-
-
-
-
 /*
 	Libraries
 */
@@ -106,7 +100,9 @@ const int MOTORTIMEOUT = 100;
 const int FACE_STATE_SURPRISED = 0;
 const int FACE_STATE_ANGRY = 1;
 const int FACE_STATE_SMILE = 2;
+const int FACE_STATE_HAPPY = 2;
 const int FACE_STATE_FROWN = 3;
+const int FACE_STATE_SAD = 3;
 const int FACE_STATE_EYES_LEFT = 4;
 const int FACE_STATE_EYES_RIGHT = 5;
 const int FACE_STATE_FLAG = 6;
@@ -129,22 +125,27 @@ uint16_t rc_values[RC_NUM_CHANNELS];
 uint32_t rc_start[RC_NUM_CHANNELS];
 volatile uint16_t rc_shared[RC_NUM_CHANNELS];
 
-// Define states
+// Define states for state machine
 //
 //
 
 const int STATE_IDLE = 0;
+const int STATE_RESET = 90;
 const int STATE_DRIVE = 99;
-const int STATE_CONV_1 = 1;
-const int STATE_CONV_2 = 2;
-const int STATE_CONV_3 = 3;
-const int STATE_CONV_4 = 4;
+const int STATE_GREETING = 1;
+const int STATE_WAITING_AFTER_GREETING = 2;
+const int STATE_GREETING_ANSWER_YES = 3;
+const int STATE_GREETING_ANSWER_NO = 4;
+const int STATE_WAITING_AFTER_QUESTION1 = 5;
+const int STATE_WAITING_AFTER_QUESTION2 = 6;
 int currentState;
+int previousState;
 
 // Define radio commands
 const int RADIO_COMMAND_NONE = 0;
 const int RADIO_COMMAND_DRIVE = 1;
 const int RADIO_COMMAND_INIT_CONV = 2;
+int previousRadioCommand;
 
 void setup() {
 
@@ -168,71 +169,163 @@ void setup() {
   pinMode(BUTTON_TWO_PIN, INPUT_PULLUP);
   pinMode(BUTTON_THREE_PIN, INPUT_PULLUP);
   pinMode(BUTTON_FOUR_PIN, INPUT_PULLUP);
+
+  // Initialize previous radio command state
+  // so that we can detect a transition
+  int previousRadioCommand = RADIO_COMMAND_NONE;
+
+  // Initialize state machine
+  currentState = STATE_IDLE;
+  previousState = STATE_IDLE;
+
+  if (debug) {
+    Serial.println("setup finished");
+  }
 }
 
 void loop() {
 
   // Check if the radio is sending any command
-  switch (hobbyRCCommand()) {
+  switch (int currentRadioCommand = hobbyRCCommand()) {
 
     case RADIO_COMMAND_NONE:
       // don't change state
+      previousRadioCommand = currentRadioCommand;
       break;
 
     case RADIO_COMMAND_DRIVE:
       currentState = STATE_DRIVE;
+      previousRadioCommand = currentRadioCommand;
       break;
 
     case RADIO_COMMAND_INIT_CONV:
-      currentState = STATE_CONV_1;
-      if (debug) Serial.println("radio requested initiating conversation");
+      // first make sure this is a transition
+      if (previousRadioCommand != currentRadioCommand) {
+        currentState = STATE_GREETING;
+        if (debug) Serial.println("radio requested initiating conversation");
+      }
+      previousRadioCommand = currentRadioCommand;
       break;
 
     default:
       if (debug) Serial.println("unexpected return value from hobbyRCCommand()");
+      previousRadioCommand = currentRadioCommand;
       break;
   }
 
   switch (currentState) {
-          if (debug) Serial.print("currentState = ");
-          if (debug) Serial.println(currentState);
-
 
     case STATE_IDLE:
       // do nothing
       break;
 
     case STATE_DRIVE:
-      //drive(); // nothing to do since it's already driving
+      // nothing to do since it's already driving
       break;
 
-      case STATE_CONV_1:
+    case STATE_GREETING:
       // express the greeting face
       newFaceState = FACE_STATE_GREETING;
 
       // Speak the greeting
+      Serial.println("Hello, I am a robot! Can I ask you some questions?");
+
+      // Speak the instructions
+      Serial.println("to answer the question, press button 1 for yes, 2 for no, or 3 to repeat the question");
 
       // proceed to next state
-      currentState = STATE_CONV_2;
+      currentState = STATE_WAITING_AFTER_GREETING;
+
+      if (0) {
+        Serial.print("initiating conversation, setting state to ");
+        Serial.println(currentState);
+      }
+
       break;
 
-    case STATE_CONV_2:
+    case STATE_WAITING_AFTER_GREETING:
       // we have spoken greeting, now check for an answer
       //
       // express the waiting face
       newFaceState = FACE_STATE_WAITING;
 
-      // Speak the instructions
 
       // see if we have an answer
       if (!digitalRead(BUTTON_ONE_PIN)) {
-        currentState = STATE_CONV_3;
+        currentState = STATE_GREETING_ANSWER_YES;
+        break;
+      }
+      if (!digitalRead(BUTTON_TWO_PIN)) {
+        currentState = STATE_GREETING_ANSWER_NO;
+        break;
       }
 
       break;
 
+
+    case STATE_GREETING_ANSWER_YES:
+      // express the greeting face
+      newFaceState = FACE_STATE_HAPPY;
+
+      // Speak the greeting
+      Serial.println("I am so excited! Are you excited to be speaking with a robot?");
+
+      // Speak the instructions
+      Serial.println("to answer the question, press button 1 for yes, 2 for no, or 3 to repeat the question");
+
+      // proceed to next state
+      currentState = STATE_WAITING_AFTER_QUESTION1;
+
+      break;
+
+    case STATE_GREETING_ANSWER_NO:
+      // express the greeting face
+      newFaceState = FACE_STATE_SAD;
+
+      // Speak the greeting
+      Serial.println("I am sorry that you are not excited. Are you frightened by robots?");
+
+      // Speak the instructions
+      Serial.println("to answer the question, press button 1 for yes, 2 for no, or 3 to repeat the question");
+
+      // proceed to next state
+      currentState = STATE_WAITING_AFTER_QUESTION2;
+
+      break;
+
+     
+      case STATE_WAITING_AFTER_QUESTION2:
+        Serial.println("not implemented yet");
+        break;
+
+    case STATE_WAITING_AFTER_QUESTION1:
+      // we have spoken greeting, now check for an answer
+      //
+      // express the waiting face
+      newFaceState = FACE_STATE_WAITING;
+
+      // see if we have an answer
+      if (!digitalRead(BUTTON_ONE_PIN)) {
+        currentState = STATE_GREETING_ANSWER_YES;
+        break;
+      }
+      if (!digitalRead(BUTTON_TWO_PIN)) {
+        currentState = STATE_GREETING_ANSWER_NO;
+        break;
+      }
+
+      break;
+
+    case STATE_RESET:
+      // do any necessary resetting here
+      // return to idle state
+      currentState = STATE_IDLE;
+
+
     default:
       // indicate an error
+      Serial.println("Unexpected state; resetting");
+      currentState = STATE_RESET;
       break;
   }
 }
@@ -310,51 +403,66 @@ If there is a command to drive, do so immediately, and return the drive state.
 If there is a command to start a conversation, return the start conversation state
 Otherwise, return none
 */
-bool hobbyRCCommand() {
-  int retval= RADIO_COMMAND_NONE; // are we driving, idling, or entering command mode?
+int hobbyRCCommand() {
+  int retval = RADIO_COMMAND_NONE;  // are we driving, idling, or entering command mode?
 
-	rc_read_values();
+  rc_read_values();
 
-	if (debug) {
-		// Right now just print them out
-		Serial.print("CH1:"); Serial.print(rc_values[RC_CH1]); Serial.print("\t\t");
-		Serial.print("CH2:"); Serial.print(rc_values[RC_CH2]); Serial.print("\t\t");
-		Serial.print("CH3:"); Serial.print(rc_values[RC_CH3]); Serial.print("\t\t");
-		Serial.print("CH4:"); Serial.print(rc_values[RC_CH4]); Serial.print("\t\t");
-		Serial.print("CH5:"); Serial.print(rc_values[RC_CH5]); Serial.println("\t\t");
-	}
-	
-	// Channel 1 is the steering wheel
-	if (rc_values[RC_CH1] > 1600) {
-		if (debug) {
-			Serial.print("right!");
-		}
-		myMotorController.right(180);
-    retval = RADIO_COMMAND_DRIVE;
-	} else if (rc_values[RC_CH1] < 1400) {
-		if (debug) {
-			Serial.print("left!");
-		}
-		myMotorController.left(180);
-    retval = RADIO_COMMAND_DRIVE;
-	}
+  if (0) {
+    // Right now just print them out
+    Serial.print("CH1:");
+    Serial.print(rc_values[RC_CH1]);
+    Serial.print("\t\t");
+    Serial.print("CH2:");
+    Serial.print(rc_values[RC_CH2]);
+    Serial.print("\t\t");
+    Serial.print("CH3:");
+    Serial.print(rc_values[RC_CH3]);
+    Serial.print("\t\t");
+    Serial.print("CH4:");
+    Serial.print(rc_values[RC_CH4]);
+    Serial.print("\t\t");
+    Serial.print("CH5:");
+    Serial.print(rc_values[RC_CH5]);
+    Serial.println("\t\t");
+  }
 
-	// Channel 2 is the throttle
-	if (rc_values[RC_CH2] < 1400) {
-		if (debug) {
-			Serial.print("forward!");
-		}
-		int go = map(constrain( rc_values[RC_CH2], 900, 1400), 1400, 900, 0, 255);
-		myMotorController.forward(go);
+  // Channel 1 is the steering wheel
+  if (rc_values[RC_CH1] > 1600) {
+    if (debug) {
+      Serial.println("right!");
+    }
+    myMotorController.right(180);
     retval = RADIO_COMMAND_DRIVE;
-	} else if (rc_values[RC_CH2] > 1600) {
-		if (debug) {
-			Serial.print("backward!");
-		}
-		int go = map(constrain( rc_values[RC_CH2], 1600, 2000), 1600, 2000, 0, 255);
-		myMotorController.backward(go);
+  } else if (rc_values[RC_CH1] < 1400) {
+    if (debug) {
+      Serial.println("left!");
+    }
+    myMotorController.left(180);
     retval = RADIO_COMMAND_DRIVE;
-	}
+  }
 
-  return (retval);
+  // Channel 2 is the throttle
+  if (rc_values[RC_CH2] < 1400) {
+    if (debug) {
+      Serial.println("forward!");
+    }
+    int go = map(constrain(rc_values[RC_CH2], 900, 1400), 1400, 900, 0, 255);
+    myMotorController.forward(go);
+    retval = RADIO_COMMAND_DRIVE;
+  } else if (rc_values[RC_CH2] > 1600) {
+    if (debug) {
+      Serial.println("backward!");
+    }
+    int go = map(constrain(rc_values[RC_CH2], 1600, 2000), 1600, 2000, 0, 255);
+    myMotorController.backward(go);
+    retval = RADIO_COMMAND_DRIVE;
+  }
+
+  if (rc_values[RC_CH4] > 1600) {
+    retval = RADIO_COMMAND_INIT_CONV;
+  }
+
+
+  return retval;
 }
