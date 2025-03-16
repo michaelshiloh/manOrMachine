@@ -25,8 +25,9 @@
 #include <Adafruit_NeoPixel.h>
 #include <Face.h>
 #include <SabertoothMotorControllerSerial3.h>
-#include <Adafruit_VS1053.h>  // music maker shield
-#include <SD.h>               // music maker shield
+// #include <SPI.h>
+// #include <Adafruit_VS1053.h>  // music maker shield
+// #include <SD.h>               // music maker shield
 
 
 /*
@@ -39,6 +40,61 @@ const bool debug = true;
 /*
 	Pin usage
 */
+0 
+1 
+2 RC_CH2_PIN
+3 DREQ 
+4 CARDCS 
+5 
+6 SHIELD_DCS  
+7 SHIELD_CS  
+8 
+9 
+10 BUTTON_ONE_PIN 
+11 BUTTON_TWO_PIN
+12 BUTTON_THREE_PIN
+13 BUTTON_FOUR_PIN 
+14 
+15 
+16 FACE_NEOPIXEL_PIN 
+17 
+18 RC_CH3_PIN 
+19 RC_CH4_PIN 
+20 RC_CH5_PIN 
+21 RC_CH1_PIN 
+22 
+23 
+24 
+25 
+26 
+27
+28 
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50 MISO
+51 MOSI
+52 SCK
+53 SS
+
 
 // Front panel switches
 const int BUTTON_ONE_PIN = 10;
@@ -53,6 +109,8 @@ const int FACE_NEOPIXEL_PIN = 16;
 
 
 // Pins 14 and 15 will be used for Serial port 3
+// which should be for the motor controller
+//
 const int RC_CH1_PIN = 21;  // Steering (was set to pin 3) [min=980 max=2036]
 const int RC_CH2_PIN = 2;   // Throttle [min=975 max=2036]
 const int RC_CH3_PIN = 18;  // Small knob (VR) [min=902 max=1900]
@@ -65,8 +123,8 @@ const int RC_CH5_PIN = 20;  // Long clear button (SWD) [min=976 max=2036] (1ms w
 #define SHIELD_DCS 6     // VS1053 Data/command select pin (output)
 #define CARDCS 4         // Card chip select pin
 // DREQ should be an Int pin, see http://arduino.cc/en/Reference/attachInterrupt
-//#define DREQ 3  // VS1053 Data request, ideally an Interrupt pin
-//Adafruit_VS1053_FilePlayer musicPlayer = Adafruit_VS1053_FilePlayer(SHIELD_RESET, SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
+#define DREQ 3  // VS1053 Data request, ideally an Interrupt pin
+
 
 
 /*
@@ -117,8 +175,9 @@ int presentFaceState = -1;
 	global objects
 */
 Face robotFace(neoPixelFaceCount, FACE_NEOPIXEL_PIN);
-
 SabertoothMotorControllerSerial3 myMotorController(MOTORTIMEOUT);
+// Adafruit_VS1053_FilePlayer musicPlayer = Adafruit_VS1053_FilePlayer(SHIELD_RESET, SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
+
 
 // Arrays for storing hobby RC values
 uint16_t rc_values[RC_NUM_CHANNELS];
@@ -155,11 +214,10 @@ void setup() {
 
   myMotorController.init();
 
+  musicMakerShieldInit();
+
   // Neopixels for face
   robotFace.init();
-
-  // So the robot can speak
-  //setupMusicMakerShield();
 
   // Read the hobby RC signals
   setupHobbyRC();
@@ -229,17 +287,14 @@ void loop() {
 
       // Speak the greeting
       Serial.println("Hello, I am a robot! Can I ask you some questions?");
+      // musicPlayer.startPlayingFile("/greeting.wav");
 
       // Speak the instructions
       Serial.println("to answer the question, press button 1 for yes, 2 for no, or 3 to repeat the question");
+      // musicPlayer.startPlayingFile("/instruct.wav");
 
       // proceed to next state
       currentState = STATE_WAITING_AFTER_GREETING;
-
-      if (0) {
-        Serial.print("initiating conversation, setting state to ");
-        Serial.println(currentState);
-      }
 
       break;
 
@@ -269,6 +324,7 @@ void loop() {
 
       // Speak the greeting
       Serial.println("I am so excited! Are you excited to be speaking with a robot?");
+      // musicPlayer.startPlayingFile("/excited.wav");
 
       // Speak the instructions
       Serial.println("to answer the question, press button 1 for yes, 2 for no, or 3 to repeat the question");
@@ -284,6 +340,7 @@ void loop() {
 
       // Speak the greeting
       Serial.println("I am sorry that you are not excited. Are you frightened by robots?");
+       // musicPlayer.startPlayingFile("/track003.mp3");
 
       // Speak the instructions
       Serial.println("to answer the question, press button 1 for yes, 2 for no, or 3 to repeat the question");
@@ -384,12 +441,6 @@ void setupHobbyRC() {
   pinMode(RC_CH4_PIN, INPUT);
   pinMode(RC_CH5_PIN, INPUT);
 
-  //	enableInterrupt(RC_CH1_PIN, calc_ch1, CHANGE);
-  //	enableInterrupt(RC_CH2_PIN, calc_ch2, CHANGE);
-  //	enableInterrupt(RC_CH3_PIN, calc_ch3, CHANGE);
-  //	enableInterrupt(RC_CH4_PIN, calc_ch4, CHANGE);
-  //	enableInterrupt(RC_CH5_PIN, calc_ch5, CHANGE);
-
   attachInterrupt(digitalPinToInterrupt(RC_CH5_PIN), calc_ch5, CHANGE);
   attachInterrupt(digitalPinToInterrupt(RC_CH4_PIN), calc_ch4, CHANGE);
   attachInterrupt(digitalPinToInterrupt(RC_CH3_PIN), calc_ch3, CHANGE);
@@ -465,4 +516,22 @@ int hobbyRCCommand() {
 
 
   return retval;
+}
+
+void  musicMakerShieldInit(){
+/*if (! musicPlayer.begin()) { // initialise the music player
+     Serial.println(F("Couldn't find VS1053, do you have the right pins defined?"));
+     while (1);
+  }
+  Serial.println(F("VS1053 found"));
+
+   if (!SD.begin(CARDCS)) {
+    Serial.println(F("SD failed, or not present"));
+    while (1);  // don't do anything more
+  }
+
+  // If DREQ is on an interrupt pin (on uno, #2 or #3) we can do background
+  // audio playing
+  musicPlayer.useInterrupt(VS1053_FILEPLAYER_PIN_INT);  // DREQ int
+  */
 }
