@@ -316,7 +316,7 @@ void loop() {
       // express the waiting face
       newFaceState = FACE_STATE_WAITING;
       robotFace.clear();
-    robotFace.surprised();
+      robotFace.surprised();
 
 
       // see if we have an answer
