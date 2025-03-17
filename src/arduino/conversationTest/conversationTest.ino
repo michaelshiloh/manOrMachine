@@ -295,6 +295,9 @@ void loop() {
       newFaceState = FACE_STATE_GREETING;
       robotFace.clear();
       robotFace.smile();
+      // experiment: after changing the face,
+      // wait for some radio signals to come in
+      delay(100);
 
       // Speak the greeting
       Serial.println("Hello, I am a robot! Can I ask you some questions?");
@@ -317,6 +320,9 @@ void loop() {
       newFaceState = FACE_STATE_WAITING;
       robotFace.clear();
       robotFace.surprised();
+      // experiment: after changing the face,
+      // wait for some radio signals to come in
+      delay(100);
 
 
       // see if we have an answer
@@ -469,7 +475,7 @@ int hobbyRCCommand() {
 
   rc_read_values();
 
-  if (0) {
+  if (debug) {
     // Right now just print them out
     Serial.print("CH1:");
     Serial.print(rc_values[RC_CH1]);
