@@ -25,9 +25,8 @@
 #include <Adafruit_NeoPixel.h>
 #include <Face.h>
 #include <SabertoothMotorControllerSerial3.h>
-// #include <SPI.h>
-// #include <Adafruit_VS1053.h>  // music maker shield
-// #include <SD.h>               // music maker shield
+#include <Adafruit_VS1053.h>  // music maker shield
+#include <SD.h>               // music maker shield
 
 
 /*
@@ -39,7 +38,7 @@ const bool debug = true;
 
 /*
 	Pin usage
-*/
+
 0 
 1 
 2 RC_CH2_PIN
@@ -94,7 +93,7 @@ const bool debug = true;
 51 MOSI
 52 SCK
 53 SS
-
+*/
 
 // Front panel switches
 const int BUTTON_ONE_PIN = 10;
@@ -176,13 +175,13 @@ int presentFaceState = -1;
 */
 Face robotFace(neoPixelFaceCount, FACE_NEOPIXEL_PIN);
 SabertoothMotorControllerSerial3 myMotorController(MOTORTIMEOUT);
-// Adafruit_VS1053_FilePlayer musicPlayer = Adafruit_VS1053_FilePlayer(SHIELD_RESET, SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
+Adafruit_VS1053_FilePlayer musicPlayer = Adafruit_VS1053_FilePlayer(SHIELD_RESET, SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
 
 
 // Arrays for storing hobby RC values
-uint16_t rc_values[RC_NUM_CHANNELS];
+uint16_t rc_values[RC_NUM_CHANNELS] = { 1500, 1500, 1000, 1000, 1000 };
 uint32_t rc_start[RC_NUM_CHANNELS];
-volatile uint16_t rc_shared[RC_NUM_CHANNELS];
+volatile uint16_t rc_shared[RC_NUM_CHANNELS] = { 1500, 1500, 1000, 1000, 1000 };
 
 // Define states for state machine
 //
@@ -206,6 +205,9 @@ const int RADIO_COMMAND_DRIVE = 1;
 const int RADIO_COMMAND_INIT_CONV = 2;
 int previousRadioCommand;
 
+// TODO should be another state
+bool greetingStarted = false; // this really is a hack
+
 void setup() {
 
   if (debug) {
@@ -221,6 +223,10 @@ void setup() {
 
   // Read the hobby RC signals
   setupHobbyRC();
+  // wait for some radio signals to come in
+  delay(100);
+  // get data once to reset the arrays to reasonable values
+  hobbyRCCommand();
 
   // And finally the front panels switches
   pinMode(BUTTON_ONE_PIN, INPUT_PULLUP);
@@ -242,6 +248,10 @@ void setup() {
 }
 
 void loop() {
+
+  // keep the motors running
+  // this must be called regularly so never use delay()
+  myMotorController.tick();
 
   // Check if the radio is sending any command
   switch (int currentRadioCommand = hobbyRCCommand()) {
@@ -282,19 +292,29 @@ void loop() {
       break;
 
     case STATE_GREETING:
-      // express the greeting face
-      newFaceState = FACE_STATE_GREETING;
 
-      // Speak the greeting
-      Serial.println("Hello, I am a robot! Can I ask you some questions?");
-      // musicPlayer.startPlayingFile("/greeting.wav");
+      // we might already have started the greeting, so don't do it again
+      if (!greetingStarted) { // really this should be another state
+      greetingStarted = true;
+        // express the greeting face
+        newFaceState = FACE_STATE_GREETING;
 
-      // Speak the instructions
-      Serial.println("to answer the question, press button 1 for yes, 2 for no, or 3 to repeat the question");
-      // musicPlayer.startPlayingFile("/instruct.wav");
+        // Speak the greeting
+        Serial.println("Hello, I am a robot! Can I ask you some questions?");
+        musicPlayer.startPlayingFile("GREETING.WAV");
 
-      // proceed to next state
-      currentState = STATE_WAITING_AFTER_GREETING;
+        // Proceed to the next state only if the greeting has finished
+        if (musicPlayer.stopped()) {
+
+          // Speak the instructions
+          Serial.println("to answer the question, press button 1 for yes, 2 for no, or 3 to repeat the question");
+          musicPlayer.startPlayingFile("INSTRUCT.WAV");
+
+          // proceed to next state
+          currentState = STATE_WAITING_AFTER_GREETING;
+          greetingStarted = false;
+        }
+      }
 
       break;
 
@@ -324,7 +344,7 @@ void loop() {
 
       // Speak the greeting
       Serial.println("I am so excited! Are you excited to be speaking with a robot?");
-      // musicPlayer.startPlayingFile("/excited.wav");
+      musicPlayer.startPlayingFile("/excited.wav");
 
       // Speak the instructions
       Serial.println("to answer the question, press button 1 for yes, 2 for no, or 3 to repeat the question");
@@ -340,7 +360,7 @@ void loop() {
 
       // Speak the greeting
       Serial.println("I am sorry that you are not excited. Are you frightened by robots?");
-       // musicPlayer.startPlayingFile("/track003.mp3");
+      musicPlayer.startPlayingFile("TRACK001.MP3");
 
       // Speak the instructions
       Serial.println("to answer the question, press button 1 for yes, 2 for no, or 3 to repeat the question");
@@ -350,10 +370,10 @@ void loop() {
 
       break;
 
-     
-      case STATE_WAITING_AFTER_QUESTION2:
-        Serial.println("not implemented yet");
-        break;
+
+    case STATE_WAITING_AFTER_QUESTION2:
+      Serial.println("not implemented yet");
+      break;
 
     case STATE_WAITING_AFTER_QUESTION1:
       // we have spoken greeting, now check for an answer
@@ -518,20 +538,21 @@ int hobbyRCCommand() {
   return retval;
 }
 
-void  musicMakerShieldInit(){
-/*if (! musicPlayer.begin()) { // initialise the music player
-     Serial.println(F("Couldn't find VS1053, do you have the right pins defined?"));
-     while (1);
+void musicMakerShieldInit() {
+  if (!musicPlayer.begin()) {  // initialise the music player
+    Serial.println(F("Couldn't find VS1053, do you have the right pins defined?"));
+    while (1)
+      ;
   }
   Serial.println(F("VS1053 found"));
 
-   if (!SD.begin(CARDCS)) {
+  if (!SD.begin(CARDCS)) {
     Serial.println(F("SD failed, or not present"));
-    while (1);  // don't do anything more
+    while (1)
+      ;  // don't do anything more
   }
 
   // If DREQ is on an interrupt pin (on uno, #2 or #3) we can do background
   // audio playing
   musicPlayer.useInterrupt(VS1053_FILEPLAYER_PIN_INT);  // DREQ int
-  */
 }
