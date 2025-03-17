@@ -182,6 +182,7 @@ Adafruit_VS1053_FilePlayer musicPlayer = Adafruit_VS1053_FilePlayer(SHIELD_RESET
 uint16_t rc_values[RC_NUM_CHANNELS] = { 1500, 1500, 1000, 1000, 1000 };
 uint32_t rc_start[RC_NUM_CHANNELS];
 volatile uint16_t rc_shared[RC_NUM_CHANNELS] = { 1500, 1500, 1000, 1000, 1000 };
+bool rc_valid[RC_NUM_CHANNELS] = { false, false, false, false, false };
 
 // Define states for state machine
 //
@@ -295,9 +296,9 @@ void loop() {
       newFaceState = FACE_STATE_GREETING;
       robotFace.clear();
       robotFace.smile();
-      // experiment: after changing the face,
-      // wait for some radio signals to come in
-      delay(100);
+      for (int i = 0; i < RC_NUM_CHANNELS; i++) {
+        rc_valid[i] = false;
+      }
 
       // Speak the greeting
       Serial.println("Hello, I am a robot! Can I ask you some questions?");
@@ -320,9 +321,9 @@ void loop() {
       newFaceState = FACE_STATE_WAITING;
       robotFace.clear();
       robotFace.surprised();
-      // experiment: after changing the face,
-      // wait for some radio signals to come in
-      delay(100);
+      for (int i = 0; i < RC_NUM_CHANNELS; i++) {
+        rc_valid[i] = false;
+      }
 
 
       // see if we have an answer
@@ -425,12 +426,24 @@ void rc_read_values() {
   interrupts();
 }
 
+// How can we determine if we have a valid signal?
+// If we catch a rising edge, then we have the start
+// of a potentially valid signal
+// if the trailing edge is within say 2500 microseconds
+// then it's valid
+
+// oh what if we do this:
+// anytime we change the face we set a flag saying
+// radio signals are invalid, and then
+// we set it to valid only after
+// all 5 channels have been read
 void calc_input(uint8_t channel, uint8_t input_pin) {
   if (digitalRead(input_pin) == HIGH) {
     rc_start[channel] = micros();
   } else {
     uint16_t rc_compare = (uint16_t)(micros() - rc_start[channel]);
     rc_shared[channel] = rc_compare;
+    rc_valid[channel] = true;
   }
 }
 
@@ -473,9 +486,16 @@ Otherwise, return none
 int hobbyRCCommand() {
   int retval = RADIO_COMMAND_NONE;  // are we driving, idling, or entering command mode?
 
+  // are any channels invalid?
+  for (int i = 0; i < RC_NUM_CHANNELS; i++) {
+    if (!rc_valid[i]) {
+      return RADIO_COMMAND_NONE;
+    }
+  }
+
   rc_read_values();
 
-  if (debug) {
+  if (0) {
     // Right now just print them out
     Serial.print("CH1:");
     Serial.print(rc_values[RC_CH1]);
