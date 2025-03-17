@@ -206,7 +206,7 @@ const int RADIO_COMMAND_INIT_CONV = 2;
 int previousRadioCommand;
 
 // TODO should be another state
-bool greetingStarted = false; // this really is a hack
+bool greetingStarted = false;  // this really is a hack
 
 void setup() {
 
@@ -294,117 +294,117 @@ void loop() {
     case STATE_GREETING:
 
       // we might already have started the greeting, so don't do it again
-      if (!greetingStarted) { // really this should be another state
-      greetingStarted = true;
+      if (!greetingStarted) {  // really this should be another state
+        greetingStarted = true;
         // express the greeting face
         newFaceState = FACE_STATE_GREETING;
 
         // Speak the greeting
         Serial.println("Hello, I am a robot! Can I ask you some questions?");
         musicPlayer.startPlayingFile("GREETING.WAV");
-
-        // Proceed to the next state only if the greeting has finished
-        if (musicPlayer.stopped()) {
-
-          // Speak the instructions
-          Serial.println("to answer the question, press button 1 for yes, 2 for no, or 3 to repeat the question");
-          musicPlayer.startPlayingFile("INSTRUCT.WAV");
-
-          // proceed to next state
-          currentState = STATE_WAITING_AFTER_GREETING;
-          greetingStarted = false;
-        }
       }
+      // Proceed to the next state only if the greeting has finished
+      if (musicPlayer.stopped()) {
 
-      break;
+        // Speak the instructions
+        Serial.println("to answer the question, press button 1 for yes, 2 for no, or 3 to repeat the question");
+        musicPlayer.startPlayingFile("INSTRUCT.WAV");
 
-    case STATE_WAITING_AFTER_GREETING:
-      // we have spoken greeting, now check for an answer
-      //
-      // express the waiting face
-      newFaceState = FACE_STATE_WAITING;
-
-
-      // see if we have an answer
-      if (!digitalRead(BUTTON_ONE_PIN)) {
-        currentState = STATE_GREETING_ANSWER_YES;
-        break;
+        // proceed to next state
+        currentState = STATE_WAITING_AFTER_GREETING;
+        greetingStarted = false;
       }
-      if (!digitalRead(BUTTON_TWO_PIN)) {
-        currentState = STATE_GREETING_ANSWER_NO;
-        break;
-      }
+  
 
+  break;
+
+  case STATE_WAITING_AFTER_GREETING:
+    // we have spoken greeting, now check for an answer
+    //
+    // express the waiting face
+    newFaceState = FACE_STATE_WAITING;
+
+
+    // see if we have an answer
+    if (!digitalRead(BUTTON_ONE_PIN)) {
+      currentState = STATE_GREETING_ANSWER_YES;
       break;
-
-
-    case STATE_GREETING_ANSWER_YES:
-      // express the greeting face
-      newFaceState = FACE_STATE_HAPPY;
-
-      // Speak the greeting
-      Serial.println("I am so excited! Are you excited to be speaking with a robot?");
-      musicPlayer.startPlayingFile("/excited.wav");
-
-      // Speak the instructions
-      Serial.println("to answer the question, press button 1 for yes, 2 for no, or 3 to repeat the question");
-
-      // proceed to next state
-      currentState = STATE_WAITING_AFTER_QUESTION1;
-
+    }
+    if (!digitalRead(BUTTON_TWO_PIN)) {
+      currentState = STATE_GREETING_ANSWER_NO;
       break;
+    }
 
-    case STATE_GREETING_ANSWER_NO:
-      // express the greeting face
-      newFaceState = FACE_STATE_SAD;
+    break;
 
-      // Speak the greeting
-      Serial.println("I am sorry that you are not excited. Are you frightened by robots?");
-      musicPlayer.startPlayingFile("TRACK001.MP3");
 
-      // Speak the instructions
-      Serial.println("to answer the question, press button 1 for yes, 2 for no, or 3 to repeat the question");
+  case STATE_GREETING_ANSWER_YES:
+    // express the greeting face
+    newFaceState = FACE_STATE_HAPPY;
 
-      // proceed to next state
-      currentState = STATE_WAITING_AFTER_QUESTION2;
+    // Speak the greeting
+    Serial.println("I am so excited! Are you excited to be speaking with a robot?");
+    musicPlayer.startPlayingFile("/excited.wav");
 
+    // Speak the instructions
+    Serial.println("to answer the question, press button 1 for yes, 2 for no, or 3 to repeat the question");
+
+    // proceed to next state
+    currentState = STATE_WAITING_AFTER_QUESTION1;
+
+    break;
+
+  case STATE_GREETING_ANSWER_NO:
+    // express the greeting face
+    newFaceState = FACE_STATE_SAD;
+
+    // Speak the greeting
+    Serial.println("I am sorry that you are not excited. Are you frightened by robots?");
+    musicPlayer.startPlayingFile("TRACK001.MP3");
+
+    // Speak the instructions
+    Serial.println("to answer the question, press button 1 for yes, 2 for no, or 3 to repeat the question");
+
+    // proceed to next state
+    currentState = STATE_WAITING_AFTER_QUESTION2;
+
+    break;
+
+
+  case STATE_WAITING_AFTER_QUESTION2:
+    Serial.println("not implemented yet");
+    break;
+
+  case STATE_WAITING_AFTER_QUESTION1:
+    // we have spoken greeting, now check for an answer
+    //
+    // express the waiting face
+    newFaceState = FACE_STATE_WAITING;
+
+    // see if we have an answer
+    if (!digitalRead(BUTTON_ONE_PIN)) {
+      currentState = STATE_GREETING_ANSWER_YES;
       break;
-
-
-    case STATE_WAITING_AFTER_QUESTION2:
-      Serial.println("not implemented yet");
+    }
+    if (!digitalRead(BUTTON_TWO_PIN)) {
+      currentState = STATE_GREETING_ANSWER_NO;
       break;
+    }
 
-    case STATE_WAITING_AFTER_QUESTION1:
-      // we have spoken greeting, now check for an answer
-      //
-      // express the waiting face
-      newFaceState = FACE_STATE_WAITING;
+    break;
 
-      // see if we have an answer
-      if (!digitalRead(BUTTON_ONE_PIN)) {
-        currentState = STATE_GREETING_ANSWER_YES;
-        break;
-      }
-      if (!digitalRead(BUTTON_TWO_PIN)) {
-        currentState = STATE_GREETING_ANSWER_NO;
-        break;
-      }
-
-      break;
-
-    case STATE_RESET:
-      // do any necessary resetting here
-      // return to idle state
-      currentState = STATE_IDLE;
+  case STATE_RESET:
+    // do any necessary resetting here
+    // return to idle state
+    currentState = STATE_IDLE;
 
 
-    default:
-      // indicate an error
-      Serial.println("Unexpected state; resetting");
-      currentState = STATE_RESET;
-      break;
-  }
+  default:
+    // indicate an error
+    Serial.println("Unexpected state; resetting");
+    currentState = STATE_RESET;
+    break;
+}
 }
 
 
