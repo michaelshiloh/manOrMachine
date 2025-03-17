@@ -293,6 +293,8 @@ void loop() {
 
       // express the greeting face
       newFaceState = FACE_STATE_GREETING;
+      robotFace.clear();
+      robotFace.smile();
 
       // Speak the greeting
       Serial.println("Hello, I am a robot! Can I ask you some questions?");
@@ -313,6 +315,8 @@ void loop() {
       //
       // express the waiting face
       newFaceState = FACE_STATE_WAITING;
+      robotFace.clear();
+    robotFace.surprised();
 
 
       // see if we have an answer
@@ -334,10 +338,7 @@ void loop() {
 
       // Speak the greeting
       Serial.println("I am so excited! Are you excited to be speaking with a robot?");
-      musicPlayer.startPlayingFile("/excited.wav");
-
-      // Speak the instructions
-      Serial.println("to answer the question, press button 1 for yes, 2 for no, or 3 to repeat the question");
+      musicPlayer.startPlayingFile("excited.wav");
 
       // proceed to next state
       currentState = STATE_WAITING_AFTER_QUESTION1;
@@ -352,9 +353,6 @@ void loop() {
       Serial.println("I am sorry that you are not excited. Are you frightened by robots?");
       musicPlayer.startPlayingFile("TRACK001.MP3");
 
-      // Speak the instructions
-      Serial.println("to answer the question, press button 1 for yes, 2 for no, or 3 to repeat the question");
-
       // proceed to next state
       currentState = STATE_WAITING_AFTER_QUESTION2;
 
@@ -362,7 +360,9 @@ void loop() {
 
 
     case STATE_WAITING_AFTER_QUESTION2:
-      Serial.println("not implemented yet");
+      Serial.println("not implemented yet; returning to idle state");
+      // not implemented yet; restarting
+      currentState = STATE_IDLE;
       break;
 
     case STATE_WAITING_AFTER_QUESTION1:
