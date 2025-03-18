@@ -113,15 +113,11 @@ Adafruit_VS1053_FilePlayer musicPlayer = Adafruit_VS1053_FilePlayer(SHIELD_RESET
 const int FACE_STATE_SURPRISED = 0;
 const int FACE_STATE_ANGRY = 1;
 const int FACE_STATE_SMILE = 2;
-const int FACE_STATE_HAPPY = 2;
 const int FACE_STATE_FROWN = 3;
-const int FACE_STATE_SAD = 3;
 const int FACE_STATE_EYES_LEFT = 4;
 const int FACE_STATE_EYES_RIGHT = 5;
 const int FACE_STATE_FLAG = 6;
 const int FACE_STATE_FLAG_COLOURS = 7;
-const int FACE_STATE_WAITING = 8;
-const int FACE_STATE_GREETING = 9;
 int newFaceState = FACE_STATE_SMILE;
 int presentFaceState = -1;
 const int neoPixelFaceCount = 60;  // How many NeoPixels
@@ -174,19 +170,19 @@ struct Question {
 const int NUMBER_OF_QUESTIONS = 13;
 // we specificy the count to make sure we have the correct number
 Question questions[NUMBER_OF_QUESTIONS] = {
-  { "Hi. Can we talk?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_HAPPY },
-  { "Are you excited?", "EXCITED.WAV", { 3, 4, 0, 0 }, FACE_STATE_WAITING },
-  { "I am sorry but OK. Have a nice day", "GREETING.WAV", { 0, 0, 0, 0 }, FACE_STATE_SAD },
-  { "I am excited too! Would you like to have a robot friend?", "GREETING.WAV", { 1, 2, 0, 0 }, 3 },
-  { "Do you think that robots should have rights?", "GREETING.WAV", { 1, 2, 0, 0 }, 4 },
-  { "Do you think that robots are slaves?", "GREETING.WAV", { 1, 2, 0, 0 }, 4 },
-  { "If a robot behaved as if it were conscious, do you think it might be conscious?", "GREETING.WAV", { 1, 2, 0, 0 }, 4 },
-  { "Do you think that robots will ever become conscious?", "GREETING.WAV", { 1, 2, 0, 0 }, 4 },
-  { "Would you like robots to be conscious?", "GREETING.WAV", { 1, 2, 0, 0 }, 4 },
-  { "Do you think that robots will ever have free will?", "GREETING.WAV", { 1, 2, 0, 0 }, 4 },
-  { "Would you like robots to have free will?", "GREETING.WAV", { 1, 2, 0, 0 }, 4 },
-  { "If a robot did something bad would you punish it?", "GREETING.WAV", { 1, 2, 0, 0 }, 4 },
-  { "Is it OK to kill a robot?", "GREETING.WAV", { 1, 2, 0, 0 }, 4 }
+  { "Hi. Can we talk?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_SMILE },
+  { "Are you excited?", "EXCITED.WAV", { 3, 4, 0, 0 }, FACE_STATE_EYES_LEFT },
+  { "I am sorry but OK. Have a nice day", "GREETING.WAV", { 0, 0, 0, 0 }, FACE_STATE_FROWN },
+  { "I am excited too! Would you like to have a robot friend?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_EYES_RIGHT },
+  { "Do you think that robots should have rights?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_SMILE },
+  { "Do you think that robots are slaves?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_EYES_RIGHT },
+  { "If a robot behaved as if it were conscious, do you think it might be conscious?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_EYES_LEFT },
+  { "Do you think that robots will ever become conscious?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_SMILE },
+  { "Would you like robots to be conscious?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_EYES_LEFT },
+  { "Do you think that robots will ever have free will?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_SMILE },
+  { "Would you like robots to have free will?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_EYES_RIGHT },
+  { "If a robot did something bad would you punish it?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_EYES_LEFT },
+  { "Is it OK to kill a robot?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_SURPRISED }
 };
 int currentQuestionIndex = 0;
 
@@ -222,7 +218,7 @@ const int RC_NUM_CHANNELS = 5;  // How many radio channels
 uint16_t rc_values[RC_NUM_CHANNELS] = { 1500, 1500, 1000, 1000, 1000 };
 uint32_t rc_start[RC_NUM_CHANNELS];
 volatile uint16_t rc_shared[RC_NUM_CHANNELS] = { 1500, 1500, 1000, 1000, 1000 };
-bool rc_valid[RC_NUM_CHANNELS] = { false, false, false, false, false };
+volatile bool rc_valid[RC_NUM_CHANNELS] = { false, false, false, false, false };
 // Define radio commands
 const int RADIO_COMMAND_NONE = 0;
 const int RADIO_COMMAND_DRIVE = 1;
@@ -288,7 +284,10 @@ void loop() {
 
   handleRCSignals();
 
-  myConverse();
+  // don't talk and drive at the same time
+  if (currentState != STATE_DRIVE) {
+    myConverse();
+  }
 }
 
 
@@ -613,6 +612,7 @@ void ask() {
 
 void makeFace() {
 
+  newFaceState = questions[currentQuestionIndex].face;
   if (debug) {
     Serial.print("makeFace: new face is = ");
     Serial.print(newFaceState);
@@ -620,10 +620,37 @@ void makeFace() {
     Serial.println(presentFaceState);
   }
 
-  newFaceState = questions[currentQuestionIndex].face;
   if (newFaceState != presentFaceState) {
     robotFace.clear();
-    robotFace.smile();
+    switch (newFaceState) {
+      case FACE_STATE_SURPRISED:
+        robotFace.surprised();
+        break;
+      case FACE_STATE_ANGRY:
+        robotFace.angry();
+        break;
+      case FACE_STATE_SMILE:
+        robotFace.smile();
+        break;
+      case FACE_STATE_FROWN:
+        robotFace.frown();
+        break;
+      case FACE_STATE_EYES_LEFT:
+        robotFace.eyesLeft();
+        break;
+      case FACE_STATE_EYES_RIGHT:
+        robotFace.eyesRight();
+        break;
+      case FACE_STATE_FLAG:
+        robotFace.flag();
+        break;
+      case FACE_STATE_FLAG_COLOURS:
+        robotFace.flagColours();
+        break;
+
+      default:
+        Serial.println("Invalid face!");
+    }
     presentFaceState = newFaceState;
     hobbyRCSetAllChannelsInvalid();
   }
