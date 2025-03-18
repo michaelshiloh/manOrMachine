@@ -34,7 +34,6 @@ const bool talk = true;
 const int FRONT_PANEL_BUTTON_COUNT = 4;
 const int front_panel_buttons[FRONT_PANEL_BUTTON_COUNT] = {10, 11, 13, 12}; // Wrong {10, 11, 12, 13};
 int front_panel_button_states[FRONT_PANEL_BUTTON_COUNT] = {0, 0, 0, 0};
-int current_state = 0; // For internal use to track buttons state
 int current_front_panel_button = 0;
 int silver_button_pushed = 0;
 
@@ -303,7 +302,7 @@ void setupFrontPanelButtons() {
 
 void getFrontPanelButtons() {
 	for (int i = 0; i < FRONT_PANEL_BUTTON_COUNT; i++) {
-		current_state = !digitalRead(front_panel_buttons[i]);
+		int current_state = !digitalRead(front_panel_buttons[i]);
 		if (!current_state) {
 			front_panel_button_states[i] = 0;
 			delay(1); //set higher for better error handling
@@ -346,7 +345,7 @@ void handleRCSignals() {
 }
 
 void getSilverButton() {
-	current_state = rc_values[RC_CH4] > RC_CH4_THRESHOLD;
+	int current_state = rc_values[RC_CH4] > RC_CH4_THRESHOLD;
 	if (!current_state) {
 		silver_button_pushed = 0;
 		//delay(1); //set higher for better error handling

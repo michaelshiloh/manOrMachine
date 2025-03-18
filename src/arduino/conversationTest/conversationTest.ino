@@ -5,6 +5,8 @@
 	Change log
 
   16 Mar 2025 - ms - initial entry
+  17 Mar 2025 - ms - fixed motor controller twitching on reset or NeoPixels
+  18 Mar 2025 - ms - possibly abandoned in favor of using Arik's question structure
 
 
 	TODO
@@ -498,94 +500,94 @@ void hobbyRCSetAllChannelsInvalid() {
   }
 }
 
-  /* check the hobby RC receiver, and see if we have any commands. 
+/* check the hobby RC receiver, and see if we have any commands. 
 If there is a command to drive, do so immediately, and return the drive state.
 If there is a command to start a conversation, return the start conversation state
 Otherwise, return none
 */
-  int hobbyRCCommand() {
-    int retval = RADIO_COMMAND_NONE;  // are we driving, idling, or entering command mode?
+int hobbyRCCommand() {
+  int retval = RADIO_COMMAND_NONE;  // are we driving, idling, or entering command mode?
 
-    // are any channels invalid?
-    if (!hobbyRCAreAllChannelsValid()) {
-      return RADIO_COMMAND_NONE;
-    }
-
-    rc_read_values();
-
-    if (0) {
-      // Right now just print them out
-      Serial.print("CH1:");
-      Serial.print(rc_values[RC_CH1]);
-      Serial.print("\t\t");
-      Serial.print("CH2:");
-      Serial.print(rc_values[RC_CH2]);
-      Serial.print("\t\t");
-      Serial.print("CH3:");
-      Serial.print(rc_values[RC_CH3]);
-      Serial.print("\t\t");
-      Serial.print("CH4:");
-      Serial.print(rc_values[RC_CH4]);
-      Serial.print("\t\t");
-      Serial.print("CH5:");
-      Serial.print(rc_values[RC_CH5]);
-      Serial.println("\t\t");
-    }
-
-    // Channel 1 is the steering wheel
-    if (rc_values[RC_CH1] > 1600) {
-      if (debug) {
-        Serial.println("right!");
-      }
-      myMotorController.right(180);
-      retval = RADIO_COMMAND_DRIVE;
-    } else if (rc_values[RC_CH1] < 1400) {
-      if (debug) {
-        Serial.println("left!");
-      }
-      myMotorController.left(180);
-      retval = RADIO_COMMAND_DRIVE;
-    }
-
-    // Channel 2 is the throttle
-    if (rc_values[RC_CH2] < 1400) {
-      if (debug) {
-        Serial.println("forward!");
-      }
-      int go = map(constrain(rc_values[RC_CH2], 900, 1400), 1400, 900, 0, 255);
-      myMotorController.forward(go);
-      retval = RADIO_COMMAND_DRIVE;
-    } else if (rc_values[RC_CH2] > 1600) {
-      if (debug) {
-        Serial.println("backward!");
-      }
-      int go = map(constrain(rc_values[RC_CH2], 1600, 2000), 1600, 2000, 0, 255);
-      myMotorController.backward(go);
-      retval = RADIO_COMMAND_DRIVE;
-    }
-
-    if (rc_values[RC_CH4] > 1600) {
-      retval = RADIO_COMMAND_INIT_CONV;
-    }
-
-    return retval;
+  // are any channels invalid?
+  if (!hobbyRCAreAllChannelsValid()) {
+    return RADIO_COMMAND_NONE;
   }
 
-  void musicMakerShieldInit() {
-    if (!musicPlayer.begin()) {  // initialise the music player
-      Serial.println(F("Couldn't find VS1053, do you have the right pins defined?"));
-      while (1)
-        ;
-    }
-    Serial.println(F("VS1053 found"));
+  rc_read_values();
 
-    if (!SD.begin(CARDCS)) {
-      Serial.println(F("SD failed, or not present"));
-      while (1)
-        ;  // don't do anything more
-    }
-
-    // If DREQ is on an interrupt pin (on uno, #2 or #3) we can do background
-    // audio playing
-    musicPlayer.useInterrupt(VS1053_FILEPLAYER_PIN_INT);  // DREQ int
+  if (0) {
+    // Right now just print them out
+    Serial.print("CH1:");
+    Serial.print(rc_values[RC_CH1]);
+    Serial.print("\t\t");
+    Serial.print("CH2:");
+    Serial.print(rc_values[RC_CH2]);
+    Serial.print("\t\t");
+    Serial.print("CH3:");
+    Serial.print(rc_values[RC_CH3]);
+    Serial.print("\t\t");
+    Serial.print("CH4:");
+    Serial.print(rc_values[RC_CH4]);
+    Serial.print("\t\t");
+    Serial.print("CH5:");
+    Serial.print(rc_values[RC_CH5]);
+    Serial.println("\t\t");
   }
+
+  // Channel 1 is the steering wheel
+  if (rc_values[RC_CH1] > 1600) {
+    if (debug) {
+      Serial.println("right!");
+    }
+    myMotorController.right(180);
+    retval = RADIO_COMMAND_DRIVE;
+  } else if (rc_values[RC_CH1] < 1400) {
+    if (debug) {
+      Serial.println("left!");
+    }
+    myMotorController.left(180);
+    retval = RADIO_COMMAND_DRIVE;
+  }
+
+  // Channel 2 is the throttle
+  if (rc_values[RC_CH2] < 1400) {
+    if (debug) {
+      Serial.println("forward!");
+    }
+    int go = map(constrain(rc_values[RC_CH2], 900, 1400), 1400, 900, 0, 255);
+    myMotorController.forward(go);
+    retval = RADIO_COMMAND_DRIVE;
+  } else if (rc_values[RC_CH2] > 1600) {
+    if (debug) {
+      Serial.println("backward!");
+    }
+    int go = map(constrain(rc_values[RC_CH2], 1600, 2000), 1600, 2000, 0, 255);
+    myMotorController.backward(go);
+    retval = RADIO_COMMAND_DRIVE;
+  }
+
+  if (rc_values[RC_CH4] > 1600) {
+    retval = RADIO_COMMAND_INIT_CONV;
+  }
+
+  return retval;
+}
+
+void musicMakerShieldInit() {
+  if (!musicPlayer.begin()) {  // initialise the music player
+    Serial.println(F("Couldn't find VS1053, do you have the right pins defined?"));
+    while (1)
+      ;
+  }
+  Serial.println(F("VS1053 found"));
+
+  if (!SD.begin(CARDCS)) {
+    Serial.println(F("SD failed, or not present"));
+    while (1)
+      ;  // don't do anything more
+  }
+
+  // If DREQ is on an interrupt pin (on uno, #2 or #3) we can do background
+  // audio playing
+  musicPlayer.useInterrupt(VS1053_FILEPLAYER_PIN_INT);  // DREQ int
+}
