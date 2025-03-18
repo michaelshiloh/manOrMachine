@@ -169,15 +169,25 @@ struct Question {
   //void (*faceFunction)(); // pointer to face function void (*funct)(int n);
   // or rewrite the library to take an index and do the case statement in the library
 };
-// button 1: yes
+// Remember that button 1: yes
 // button 2: no
-Question q0 = { "Hi. Wanna talk?", "GREETING.WAV", { 1, 2, 0, 0 }, 0 };
-Question q1 = { "Sweet. Do you like rice?", "GREETING.WAV", { 3, 4, 0, 0 }, 1 };
-Question q2 = { "Goodbye.", "GREETING.WAV", { 0, 0, 0, 0 }, 2 };
-Question q3 = { "Me too! Wanna talk again?", "GREETING.WAV", { 1, 2, 0, 0 }, 3 };
-Question q4 = { "Never talk to me again!.. Wanna talk again?", "GREETING.WAV", { 1, 2, 0, 0 }, 4 };
-const int NUMBER_OF_QUESTIONS = 5;
-Question questions[NUMBER_OF_QUESTIONS] = { q0, q1, q2, q3, q4 };
+const int NUMBER_OF_QUESTIONS = 13;
+// we specificy the count to make sure we have the correct number
+Question questions[NUMBER_OF_QUESTIONS] = {
+  { "Hi. Can we talk?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_HAPPY },
+  { "Are you excited?", "EXCITED.WAV", { 3, 4, 0, 0 }, FACE_STATE_WAITING },
+  { "I am sorry but OK. Have a nice day", "GREETING.WAV", { 0, 0, 0, 0 }, FACE_STATE_SAD },
+  { "I am excited too! Would you like to have a robot friend?", "GREETING.WAV", { 1, 2, 0, 0 }, 3 },
+  { "Do you think that robots should have rights?", "GREETING.WAV", { 1, 2, 0, 0 }, 4 },
+  { "Do you think that robots are slaves?", "GREETING.WAV", { 1, 2, 0, 0 }, 4 },
+  { "If a robot behaved as if it were conscious, do you think it might be conscious?", "GREETING.WAV", { 1, 2, 0, 0 }, 4 },
+  { "Do you think that robots will ever become conscious?", "GREETING.WAV", { 1, 2, 0, 0 }, 4 },
+  { "Would you like robots to be conscious?", "GREETING.WAV", { 1, 2, 0, 0 }, 4 },
+  { "Do you think that robots will ever have free will?", "GREETING.WAV", { 1, 2, 0, 0 }, 4 },
+  { "Would you like robots to have free will?", "GREETING.WAV", { 1, 2, 0, 0 }, 4 },
+  { "If a robot did something bad would you punish it?", "GREETING.WAV", { 1, 2, 0, 0 }, 4 },
+  { "Is it OK to kill a robot?", "GREETING.WAV", { 1, 2, 0, 0 }, 4 }
+};
 int currentQuestionIndex = 0;
 
 
@@ -299,7 +309,7 @@ int getRadioCommand() {
 // Hobby RC functions
 void rc_read_values() {
   noInterrupts();
-  memcpy(rc_values, (const void *)rc_shared, sizeof(rc_shared));
+  memcpy(rc_values, (const void*)rc_shared, sizeof(rc_shared));
   interrupts();
 }
 
