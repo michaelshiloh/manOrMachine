@@ -162,7 +162,8 @@ SabertoothMotorControllerSerial3 myMotorController(MOTORTIMEOUT);
 Conversation!
 */
 struct Question {
-  String audio_file;                      // sound file to play in 8.3 format
+  String questionText;                    // text question
+  char* questionFileName;                 // sound file to play in 8.3 format
   int buttons[FRONT_PANEL_BUTTON_COUNT];  // array of buttons that point to questions
   int face;                               // I really wanted to put the functoin pointer in here
   //void (*faceFunction)(); // pointer to face function void (*funct)(int n);
@@ -170,11 +171,11 @@ struct Question {
 };
 // button 1: yes
 // button 2: no
-Question q0 = { "Hi. Wanna talk?", { 1, 2, 0, 0 }, 0 };
-Question q1 = { "Sweet. Do you like rice?", { 3, 4, 0, 0 }, 1 };
-Question q2 = { "Goodbye.", { 0, 0, 0, 0 }, 2 };
-Question q3 = { "Me too! Wanna talk again?", { 1, 2, 0, 0 }, 3 };
-Question q4 = { "Never talk to me again!.. Wanna talk again?", { 1, 2, 0, 0 }, 4 };
+Question q0 = { "Hi. Wanna talk?", "GREETING.WAV", { 1, 2, 0, 0 }, 0 };
+Question q1 = { "Sweet. Do you like rice?", "GREETING.WAV", { 3, 4, 0, 0 }, 1 };
+Question q2 = { "Goodbye.", "GREETING.WAV", { 0, 0, 0, 0 }, 2 };
+Question q3 = { "Me too! Wanna talk again?", "GREETING.WAV", { 1, 2, 0, 0 }, 3 };
+Question q4 = { "Never talk to me again!.. Wanna talk again?", "GREETING.WAV", { 1, 2, 0, 0 }, 4 };
 const int NUMBER_OF_QUESTIONS = 5;
 Question questions[NUMBER_OF_QUESTIONS] = { q0, q1, q2, q3, q4 };
 int currentQuestionIndex = 0;
@@ -594,8 +595,8 @@ void ask() {
     makeFace();
 
     // Speak the greeting
-    if (debug) Serial.println(questions[currentQuestionIndex].audio_file);
-    musicPlayer.startPlayingFile("GREETING.WAV");
+    if (debug) Serial.println(questions[currentQuestionIndex].questionText);
+    musicPlayer.startPlayingFile(questions[currentQuestionIndex].questionFileName);
     currentState = STATE_WAITING_SPEAKING_FINISHED;
   }
 }
