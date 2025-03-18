@@ -167,22 +167,28 @@ struct Question {
 };
 // Remember that button 1: yes
 // button 2: no
-const int NUMBER_OF_QUESTIONS = 13;
-// we specificy the count to make sure we have the correct number
+const int NUMBER_OF_QUESTIONS = 20;
+// we specificy the size of the arry to make sure we have the correct number
 Question questions[NUMBER_OF_QUESTIONS] = {
-  { "Hi. Can we talk?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_SMILE },
-  { "Are you excited?", "EXCITED.WAV", { 3, 4, 0, 0 }, FACE_STATE_EYES_LEFT },
-  { "I am sorry but OK. Have a nice day", "GREETING.WAV", { 0, 0, 0, 0 }, FACE_STATE_FROWN },
-  { "I am excited too! Would you like to have a robot friend?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_EYES_RIGHT },
-  { "Do you think that robots should have rights?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_SMILE },
-  { "Do you think that robots are slaves?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_EYES_RIGHT },
-  { "If a robot behaved as if it were conscious, do you think it might be conscious?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_EYES_LEFT },
-  { "Do you think that robots will ever become conscious?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_SMILE },
-  { "Would you like robots to be conscious?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_EYES_LEFT },
-  { "Do you think that robots will ever have free will?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_SMILE },
-  { "Would you like robots to have free will?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_EYES_RIGHT },
-  { "If a robot did something bad would you punish it?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_EYES_LEFT },
-  { "Is it OK to kill a robot?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_SURPRISED }
+  /* 0 */ { "Hi. Can we talk?", "GREETING.WAV", { 1, 2, 0, 0 }, FACE_STATE_SMILE },
+  /* 1 */ { "Are you excited?", "EXCITED.WAV", { 3, 13, 0, 0 }, FACE_STATE_EYES_LEFT },
+  /* 2 */ { "I am sorry but OK. Have a nice day", "2.WAV", { 0, 0, 0, 0 }, FACE_STATE_FROWN },
+  /* 3 */ { "I am excited too! Would you like to have a robot friend?", "3.WAV", { 4, 6, 0, 0 }, FACE_STATE_EYES_RIGHT },
+  /* 4 */ { "Do you think that robots should have rights?", "4.WAV", { 8, 5, 0, 0 }, FACE_STATE_SMILE },
+  /* 5 */ { "Do you think that robots are slaves?", "5.WAV", { 12, 13, 0, 0 }, FACE_STATE_EYES_RIGHT },
+  /* 6 */ { "If a robot behaved as if it were conscious, do you think it might be conscious?", "6.WAV", { 8, 12, 0, 0 }, FACE_STATE_EYES_LEFT },
+  /* 7 */ { "Do you think that robots will ever become conscious?", "7.WAV", { 9, 12, 0, 0 }, FACE_STATE_SMILE },
+  /* 8 */ { "Would you like robots to be conscious?", "8.WAV", { 14, 15, 0, 0 }, FACE_STATE_EYES_LEFT },
+  /* 9 */ { "Do you think that robots will ever have free will?", "9.WAV", { 11, 16, 0, 0 }, FACE_STATE_SMILE },
+  /* 10 */ { "Would you like robots to have free will?", "10.WAV", { 16, 14, 0, 0 }, FACE_STATE_EYES_RIGHT },
+  /* 11 */ { "If a robot did something bad would you punish it?", "11.WAV", { 14, 16, 0, 0 }, FACE_STATE_EYES_LEFT },
+  /* 12 */ { "Is it OK to kill a robot?", "12.WAV", { 13, 3, 0, 0 }, FACE_STATE_SURPRISED },
+  /* 13 */ { "Are you frightened by robots?", "13.WAV", { 17, 18, 0, 0 }, FACE_STATE_EYES_RIGHT },
+  /* 14 */ { "Is it OK to kill a conscious robot?", "14.WAV", { 17, 17, 0, 0 }, FACE_STATE_SURPRISED },
+  /* 15 */ { "Is it OK to kill an unconscious robot?", "15.WAV", { 18, 18, 0, 0 }, FACE_STATE_EYES_LEFT },
+  /* 16 */ { "If a robot has no free will, is it conscious?", "16.WAV", { 13, 17, 0, 0 }, FACE_STATE_SMILE },
+  /* 17 */ { "Thank you for speaking with me, I enjoyed it. Have a nice day!", "17.WAV", { 0, 0, 0, 0 }, FACE_STATE_SURPRISED },
+  /* 18 */ { "I am out of questions. Did you enjoy our conversation?", "18.WAV", { 17, 17, 0, 0 }, FACE_STATE_SURPRISED }
 };
 int currentQuestionIndex = 0;
 
@@ -215,6 +221,7 @@ const int RC_CH5_PIN = 20;  // Long clear button (SWD) [min=976 max=2036] (1ms w
 #define RC_CH5 4
 const int RC_NUM_CHANNELS = 5;  // How many radio channels
 // Arrays for storing hobby RC values
+// we specificy the size of the arry to make sure we have the correct number
 uint16_t rc_values[RC_NUM_CHANNELS] = { 1500, 1500, 1000, 1000, 1000 };
 uint32_t rc_start[RC_NUM_CHANNELS];
 volatile uint16_t rc_shared[RC_NUM_CHANNELS] = { 1500, 1500, 1000, 1000, 1000 };
