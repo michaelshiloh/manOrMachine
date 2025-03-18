@@ -92,32 +92,12 @@ const bool debug = true;
 47
 48
 49
-50 MISO
-51 MOSI
-52 SCK
-53 SS
+50 MISO The Music Maker Shield uses SPI
+51 MOSI The Music Maker Shield uses SPI
+52 SCK  The Music Maker Shield uses SPI
+53 SS   The Music Maker Shield uses SPI
 */
 
-// Front panel switches
-const int BUTTON_ONE_PIN = 10;
-const int BUTTON_TWO_PIN = 11;
-const int BUTTON_THREE_PIN = 12;
-const int BUTTON_FOUR_PIN = 13;
-
-// The Music Maker Shield uses SPI which is on pins
-// 50, 51, 52, and 53 on the Mega
-
-const int FACE_NEOPIXEL_PIN = 16;
-
-
-// Pins 14 and 15 will be used for Serial port 3
-// which should be for the motor controller
-//
-const int RC_CH1_PIN = 21;  // Steering (was set to pin 3) [min=980 max=2036]
-const int RC_CH2_PIN = 2;   // Throttle [min=975 max=2036]
-const int RC_CH3_PIN = 18;  // Small knob (VR) [min=902 max=1900]
-const int RC_CH4_PIN = 19;  // Silver circular button (SWA) [min=976 max=2036] (1ms when not pressed, 2ms when pressed)
-const int RC_CH5_PIN = 20;  // Long clear button (SWD) [min=976 max=2036] (1ms when not pressed, 2ms when pressed)
 
 // Adafruit music maker shield
 #define SHIELD_RESET -1  // VS1053 reset pin (unused!)
@@ -126,37 +106,10 @@ const int RC_CH5_PIN = 20;  // Long clear button (SWD) [min=976 max=2036] (1ms w
 #define CARDCS 4         // Card chip select pin
 // DREQ should be an Int pin, see http://arduino.cc/en/Reference/attachInterrupt
 #define DREQ 3  // VS1053 Data request, ideally an Interrupt pin
+Adafruit_VS1053_FilePlayer musicPlayer = Adafruit_VS1053_FilePlayer(SHIELD_RESET, SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
 
 
-
-/*
-	Other global variables
-*/
-const int RC_NUM_CHANNELS = 5;     // How many radio channels
-const int neoPixelFaceCount = 60;  // How many NeoPixels
-
-// Control verbosity of messages
-const int verboseDistance = 1;
-const int reportDistance = 2;
-const int verboseMotor = 4;
-const int debugMotor = 8;
-const int verboseMOTORTIMEOUT = 16;
-const int debugSensorReadingTick = 32;
-const int debugPrint = 0;
-
-// for controlling the motors
-const int MYFORWARD = 0;
-const int MYREVERSE = 1;
-const int MOTORTIMEOUT = 100;
-
-// Indexes into the array of hobby RC radio channels
-#define RC_CH1 0
-#define RC_CH2 1
-#define RC_CH3 2
-#define RC_CH4 3
-#define RC_CH5 4
-
-// Face expressions
+// Face
 const int FACE_STATE_SURPRISED = 0;
 const int FACE_STATE_ANGRY = 1;
 const int FACE_STATE_SMILE = 2;
@@ -171,17 +124,43 @@ const int FACE_STATE_WAITING = 8;
 const int FACE_STATE_GREETING = 9;
 int newFaceState = FACE_STATE_SMILE;
 int presentFaceState = -1;
+const int neoPixelFaceCount = 60;  // How many NeoPixels
+const int FACE_NEOPIXEL_PIN = 16;
+Face robotFace(neoPixelFaceCount, FACE_NEOPIXEL_PIN);
 
 
 /*
-	global objects
+Front panel buttons
 */
-Face robotFace(neoPixelFaceCount, FACE_NEOPIXEL_PIN);
-SabertoothMotorControllerSerial3 myMotorController(MOTORTIMEOUT);
-Adafruit_VS1053_FilePlayer musicPlayer = Adafruit_VS1053_FilePlayer(SHIELD_RESET, SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
-
-// implement Arik's scheme
 const int FRONT_PANEL_BUTTON_COUNT = 4;
+int front_panel_button_states[FRONT_PANEL_BUTTON_COUNT] = { 0, 0, 0, 0 };
+const int front_panel_buttons[FRONT_PANEL_BUTTON_COUNT] = { 10, 11, 13, 12 };
+
+
+/*
+Motor Controller
+*/
+// Control verbosity of messages
+const int verboseDistance = 1;
+const int reportDistance = 2;
+const int verboseMotor = 4;
+const int debugMotor = 8;
+const int verboseMOTORTIMEOUT = 16;
+const int debugSensorReadingTick = 32;
+const int debugPrint = 0;
+// for controlling the motors
+const int MYFORWARD = 0;
+const int MYREVERSE = 1;
+const int MOTORTIMEOUT = 100;
+// Pins 14 and 15 will be used for Serial port 3
+// which should be for the motor controller
+//
+SabertoothMotorControllerSerial3 myMotorController(MOTORTIMEOUT);
+
+
+/*
+Conversation!
+*/
 struct Question {
   String audio_file;                      // sound file to play in 8.3 format
   int buttons[FRONT_PANEL_BUTTON_COUNT];  // array of buttons that point to questions
@@ -189,9 +168,6 @@ struct Question {
   //void (*faceFunction)(); // pointer to face function void (*funct)(int n);
   // or rewrite the library to take an index and do the case statement in the library
 };
-/*
-  Create question objects
-*/
 // button 1: yes
 // button 2: no
 Question q0 = { "Hi. Wanna talk?", { 1, 2, 0, 0 }, 0 };
@@ -199,27 +175,43 @@ Question q1 = { "Sweet. Do you like rice?", { 3, 4, 0, 0 }, 1 };
 Question q2 = { "Goodbye.", { 0, 0, 0, 0 }, 2 };
 Question q3 = { "Me too! Wanna talk again?", { 1, 2, 0, 0 }, 3 };
 Question q4 = { "Never talk to me again!.. Wanna talk again?", { 1, 2, 0, 0 }, 4 };
-
-
-Question questions[] = { q0, q1, q2, q3, q4 };
+const int NUMBER_OF_QUESTIONS = 5;
+Question questions[NUMBER_OF_QUESTIONS] = { q0, q1, q2, q3, q4 };
 int currentQuestionIndex = 0;
-int currentState;
+
+
+/*
+State machine
+*/
 const int STATE_IDLE = 0;
 const int STATE_ASK_QUESTION = 1;
 const int STATE_WAITING_SPEAKING_FINISHED = 2;
 const int STATE_STARTING_NEW_CONVERSATION = 3;
 const int STATE_WAITING_FOR_RESPONSE = 4;
 const int STATE_DRIVE = 5;
-int front_panel_button_states[FRONT_PANEL_BUTTON_COUNT] = { 0, 0, 0, 0 };
-const int front_panel_buttons[FRONT_PANEL_BUTTON_COUNT] = { 10, 11, 13, 12 };
+int currentState;
 
+
+/* 
+Hobby RC receiver
+*/
+const int RC_CH1_PIN = 21;  // Steering (was set to pin 3) [min=980 max=2036]
+const int RC_CH2_PIN = 2;   // Throttle [min=975 max=2036]
+const int RC_CH3_PIN = 18;  // Small knob (VR) [min=902 max=1900]
+const int RC_CH4_PIN = 19;  // Silver circular button (SWA) [min=976 max=2036] (1ms when not pressed, 2ms when pressed)
+const int RC_CH5_PIN = 20;  // Long clear button (SWD) [min=976 max=2036] (1ms when not pressed, 2ms when pressed)
+// Indexes into the array of hobby RC radio channels
+#define RC_CH1 0
+#define RC_CH2 1
+#define RC_CH3 2
+#define RC_CH4 3
+#define RC_CH5 4
+const int RC_NUM_CHANNELS = 5;  // How many radio channels
 // Arrays for storing hobby RC values
 uint16_t rc_values[RC_NUM_CHANNELS] = { 1500, 1500, 1000, 1000, 1000 };
 uint32_t rc_start[RC_NUM_CHANNELS];
 volatile uint16_t rc_shared[RC_NUM_CHANNELS] = { 1500, 1500, 1000, 1000, 1000 };
 bool rc_valid[RC_NUM_CHANNELS] = { false, false, false, false, false };
-
-
 // Define radio commands
 const int RADIO_COMMAND_NONE = 0;
 const int RADIO_COMMAND_DRIVE = 1;
@@ -258,11 +250,9 @@ void setup() {
   hobbyRCCommand();
   if (debug) Serial.println(F("Received valid Hobby RC signals"));
 
-  // And finally the front panels switches
-  pinMode(BUTTON_ONE_PIN, INPUT_PULLUP);
-  pinMode(BUTTON_TWO_PIN, INPUT_PULLUP);
-  pinMode(BUTTON_THREE_PIN, INPUT_PULLUP);
-  pinMode(BUTTON_FOUR_PIN, INPUT_PULLUP);
+  for (int i = 0; i < FRONT_PANEL_BUTTON_COUNT; i++) {
+    pinMode(front_panel_buttons[i], INPUT_PULLUP);
+  }
 
   // Initialize previous radio command state
   // so that we can detect a transition
@@ -560,7 +550,7 @@ void myConverse() {
         // Subtract 1 because
         // buttons count from 1
         // while the array of questions is indexed from 0
-        int nextQuestionIndex = questions[currentQuestionIndex].buttons[currentButtonPressed] - 1;
+        int nextQuestionIndex = questions[currentQuestionIndex].buttons[currentButtonPressed - 1];
         if (debug) {
           Serial.print("currentButtonPressed: ");
           Serial.print(currentButtonPressed);
@@ -568,8 +558,12 @@ void myConverse() {
           Serial.println(nextQuestionIndex);
         }
 
-        if (nextQuestionIndex < 0 || nextQuestionIndex > 3) {
-          Serial.print("Invalid button - must be a bug");
+        if (currentButtonPressed < 0 || currentButtonPressed >= FRONT_PANEL_BUTTON_COUNT) {
+          Serial.print("Invalid question - must be a bug");
+        }
+
+        if (nextQuestionIndex < 0 || nextQuestionIndex >= NUMBER_OF_QUESTIONS) {
+          Serial.print("Invalid question - must be a bug");
         } else {
           // proceed to next question
           currentQuestionIndex = nextQuestionIndex;
@@ -593,7 +587,7 @@ bool finishedSpeaking() {
 
 void ask() {
   if (debug) {
-    Serial.print("in ask function, currentQuestionIndex = ");
+    Serial.print("\n in ask function, currentQuestionIndex = ");
     Serial.println(currentQuestionIndex);
 
     // express the appropriate face
@@ -641,7 +635,7 @@ int checkButtonStates() {
     int current_state = !digitalRead(front_panel_buttons[i]);
 
 
-    if (debug && current_state) {
+    if (0 && current_state) {
       Serial.print("button pressed at index = ");
       Serial.println(i);
     }
@@ -661,8 +655,12 @@ int checkButtonStates() {
         Serial.print("pressed switch number: ");
         Serial.println(i + 1);
       }
+
+      // if a button is pressed, return right away
+      // with it's number (not index)
       return i + 1;
     }
-    return 0;
   }
+  // if we've done all buttons and none are pressed
+  return 0;
 }
