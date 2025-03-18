@@ -194,46 +194,31 @@ struct Question {
 */
 // button 1: yes
 // button 2: no
-Question q1 = { "Hi. Wanna talk?", { 2, 3, 0, 0 }, 0 };
-Question q2 = { "Sweet. Do you like rice?", { 4, 5, 0, 0 }, 1 };
-Question q3 = { "Goodbye.", { 0, 0, 0, 0 }, 2 };
-Question q4 = { "Me too! Wanna talk again?", { 2, 3, 0, 0 }, 3 };
-Question q5 = { "Never talk to me again!.. Wanna talk again?", { 2, 3, 0, 0 }, 4 };
+Question q0 = { "Hi. Wanna talk?", { 1, 2, 0, 0 }, 0 };
+Question q1 = { "Sweet. Do you like rice?", { 3, 4, 0, 0 }, 1 };
+Question q2 = { "Goodbye.", { 0, 0, 0, 0 }, 2 };
+Question q3 = { "Me too! Wanna talk again?", { 1, 2, 0, 0 }, 3 };
+Question q4 = { "Never talk to me again!.. Wanna talk again?", { 1, 2, 0, 0 }, 4 };
 
 
-Question questions[] = { q1, q2, q3, q4, q5 };
-Question currentQuestion = q1;  // this is silly TODO
-int state;
+Question questions[] = { q0, q1, q2, q3, q4 };
+int currentQuestionIndex = 0;
+int currentState;
+const int STATE_IDLE = 0;
 const int STATE_ASK_QUESTION = 1;
 const int STATE_WAITING_SPEAKING_FINISHED = 2;
 const int STATE_STARTING_NEW_CONVERSATION = 3;
 const int STATE_WAITING_FOR_RESPONSE = 4;
+const int STATE_DRIVE = 5;
+int front_panel_button_states[FRONT_PANEL_BUTTON_COUNT] = { 0, 0, 0, 0 };
+const int front_panel_buttons[FRONT_PANEL_BUTTON_COUNT] = { 10, 11, 13, 12 };
 
-int front_panel_button_states[FRONT_PANEL_BUTTON_COUNT] = {0, 0, 0, 0}; 
-
-const int front_panel_buttons[FRONT_PANEL_BUTTON_COUNT] = {10, 11, 13, 12};
 // Arrays for storing hobby RC values
 uint16_t rc_values[RC_NUM_CHANNELS] = { 1500, 1500, 1000, 1000, 1000 };
 uint32_t rc_start[RC_NUM_CHANNELS];
 volatile uint16_t rc_shared[RC_NUM_CHANNELS] = { 1500, 1500, 1000, 1000, 1000 };
 bool rc_valid[RC_NUM_CHANNELS] = { false, false, false, false, false };
 
-// Define states for state machine
-//
-//
-
-const int STATE_IDLE = 0;
-const int STATE_RESET = 90;
-const int STATE_DRIVE = 99;
-const int STATE_GREETING = 1;
-const int STATE_WAITING_AFTER_GREETING = 2;
-const int STATE_WAIT_GREETING_FINISH_PLAYING = 7;
-const int STATE_GREETING_ANSWER_YES = 3;
-const int STATE_GREETING_ANSWER_NO = 4;
-const int STATE_WAITING_AFTER_QUESTION1 = 5;
-const int STATE_WAITING_AFTER_QUESTION2 = 6;
-int currentState;
-int previousState;
 
 // Define radio commands
 const int RADIO_COMMAND_NONE = 0;
@@ -284,8 +269,10 @@ void setup() {
   int previousRadioCommand = RADIO_COMMAND_NONE;
 
   // Initialize state machine
-  currentState = STATE_IDLE;
-  previousState = STATE_IDLE;
+  // currentState = STATE_IDLE;
+  // previousState = STATE_IDLE;
+  currentQuestionIndex = 0;
+  int currentState = STATE_IDLE;
 
   if (debug) {
     Serial.println(F("setup finished"));
@@ -299,12 +286,6 @@ void loop() {
   myMotorController.tick();
 
   handleRCSignals();
-
-  // my old method
-  // runStateMachine();
-
-  // Ariks method
-  //converse();
 
   myConverse();
 }
@@ -514,7 +495,7 @@ void handleRCSignals() {
     case RADIO_COMMAND_INIT_CONV:
       // first make sure this is a transition
       if (previousRadioCommand != currentRadioCommand) {
-        currentState = STATE_GREETING;
+        currentState = STATE_STARTING_NEW_CONVERSATION;
         if (debug) Serial.println("radio requested initiating conversation");
       }
       previousRadioCommand = currentRadioCommand;
@@ -526,132 +507,7 @@ void handleRCSignals() {
       break;
   }
 }
-void runStateMachine() {
-  if (0) Serial.println(F("runStateMachine"));
 
-  switch (currentState) {
-
-    case STATE_IDLE:
-      // do nothing
-      break;
-
-    case STATE_DRIVE:
-      // nothing to do since it's already driving
-      break;
-
-    case STATE_GREETING:
-
-      // express the greeting face
-      newFaceState = FACE_STATE_GREETING;
-      robotFace.clear();
-      robotFace.smile();
-      hobbyRCSetAllChannelsInvalid();
-
-
-
-      // Speak the greeting
-      Serial.println("Hello, I am a robot! Can I ask you some questions?");
-      musicPlayer.startPlayingFile("GREETING.WAV");
-      currentState = STATE_WAIT_GREETING_FINISH_PLAYING;
-      break;
-
-    case STATE_WAIT_GREETING_FINISH_PLAYING:
-
-      if (musicPlayer.stopped()) {
-        // proceed to next state
-        currentState = STATE_WAITING_AFTER_GREETING;
-      }
-      break;
-
-    case STATE_WAITING_AFTER_GREETING:
-      // we have spoken greeting, now check for an answer
-      //
-      // express the waiting face
-      newFaceState = FACE_STATE_WAITING;
-      robotFace.clear();
-      robotFace.surprised();
-      for (int i = 0; i < RC_NUM_CHANNELS; i++) {
-        rc_valid[i] = false;
-      }
-
-
-      // see if we have an answer
-      if (!digitalRead(BUTTON_ONE_PIN)) {
-        currentState = STATE_GREETING_ANSWER_YES;
-        break;
-      }
-      if (!digitalRead(BUTTON_TWO_PIN)) {
-        currentState = STATE_GREETING_ANSWER_NO;
-        break;
-      }
-
-      break;
-
-
-    case STATE_GREETING_ANSWER_YES:
-      // express the greeting face
-      newFaceState = FACE_STATE_HAPPY;
-
-      // Speak the greeting
-      Serial.println("I am so excited! Are you excited to be speaking with a robot?");
-      musicPlayer.startPlayingFile("excited.wav");
-
-      // proceed to next state
-      currentState = STATE_WAITING_AFTER_QUESTION1;
-
-      break;
-
-    case STATE_GREETING_ANSWER_NO:
-      // express the greeting face
-      newFaceState = FACE_STATE_SAD;
-
-      // Speak the greeting
-      Serial.println("I am sorry that you are not excited. Are you frightened by robots?");
-      musicPlayer.startPlayingFile("TRACK001.MP3");
-
-      // proceed to next state
-      currentState = STATE_WAITING_AFTER_QUESTION2;
-
-      break;
-
-
-    case STATE_WAITING_AFTER_QUESTION2:
-      Serial.println("not implemented yet; returning to idle state");
-      // not implemented yet; restarting
-      currentState = STATE_IDLE;
-      break;
-
-    case STATE_WAITING_AFTER_QUESTION1:
-      // we have spoken greeting, now check for an answer
-      //
-      // express the waiting face
-      newFaceState = FACE_STATE_WAITING;
-
-      // see if we have an answer
-      if (!digitalRead(BUTTON_ONE_PIN)) {
-        currentState = STATE_GREETING_ANSWER_YES;
-        break;
-      }
-      if (!digitalRead(BUTTON_TWO_PIN)) {
-        currentState = STATE_GREETING_ANSWER_NO;
-        break;
-      }
-
-      break;
-
-    case STATE_RESET:
-      // do any necessary resetting here
-      // return to idle state
-      currentState = STATE_IDLE;
-
-
-    default:
-      // indicate an error
-      Serial.println("Unexpected state; resetting");
-      currentState = STATE_RESET;
-      break;
-  }
-}
 
 //====================================================================================
 // Ariks method
@@ -668,41 +524,21 @@ void runStateMachine() {
 */
 
 
-/*
-void converse() {
-	if (starting_new_conversation) {
-		startNewConversation();
-	} else if (having_conversation && person_responded) {
-	//} else if (having_conversation) {
-		// Subtract 1 because we start counting questions at 1 not 0 like the buttons
-		next_question_index = currentQuestion.buttons[current_front_panel_button] - 1;
-		Serial.print("next_question_index: ");
-		Serial.println(next_question_index);
-		if (next_question_index == -1) {
-			person_responded = false;
-			//endConversation();
-		} else if (next_question_index == 0) {
-			startNewConversation();
-		} else {
-			currentQuestion = questions[next_question_index];
-			ask();
-		}
-	}
-}
-*/
-
 // is there anything else we need to do?
 void resetConversation() {
   // clear face
-  currentQuestion = q1;
-  state = STATE_ASK_QUESTION;
+  currentQuestionIndex = 0;
+  currentState = STATE_ASK_QUESTION;
 }
 
 
 // run the conversation as a state machine
 void myConverse() {
 
-  switch (state) {
+  switch (currentState) {
+
+    case STATE_IDLE:
+      break;
 
     case STATE_STARTING_NEW_CONVERSATION:
       resetConversation();
@@ -710,36 +546,42 @@ void myConverse() {
 
     case STATE_ASK_QUESTION:
       ask();  // this does face and speaking
-      state = STATE_WAITING_SPEAKING_FINISHED;
+      currentState = STATE_WAITING_SPEAKING_FINISHED;
       break;
 
     case STATE_WAITING_SPEAKING_FINISHED:
       if (finishedSpeaking()) {
-        state = STATE_WAITING_FOR_RESPONSE;
+        currentState = STATE_WAITING_FOR_RESPONSE;
       }
       break;
 
     case STATE_WAITING_FOR_RESPONSE:
       if (int currentButtonPressed = checkButtonStates()) {
-        // Subtract 1 because we start counting questions at 1 not 0 like the buttons
-        int nextQuestionIndex = currentQuestion.buttons[currentButtonPressed] - 1;
-        Serial.print("nextQuestionIndex: ");
-        Serial.println(nextQuestionIndex);
-        
+        // Subtract 1 because
+        // buttons count from 1
+        // while the array of questions is indexed from 0
+        int nextQuestionIndex = questions[currentQuestionIndex].buttons[currentButtonPressed] - 1;
+        if (debug) {
+          Serial.print("currentButtonPressed: ");
+          Serial.print(currentButtonPressed);
+          Serial.print("\tnextQuestionIndex: ");
+          Serial.println(nextQuestionIndex);
+        }
+
         if (nextQuestionIndex < 0 || nextQuestionIndex > 3) {
           Serial.print("Invalid button - must be a bug");
         } else {
           // proceed to next question
-          currentQuestion = questions[nextQuestionIndex];
+          currentQuestionIndex = nextQuestionIndex;
           // and go to the appropriate state
-          state = STATE_ASK_QUESTION;
+          currentState = STATE_ASK_QUESTION;
         }
       }
       break;
 
     default:
       if (debug) Serial.println("unexpected state in myConverse(); restarting conversation");
-      state = STATE_STARTING_NEW_CONVERSATION;
+      currentState = STATE_STARTING_NEW_CONVERSATION;
       break;
 
   }  // end of state machine
@@ -750,27 +592,30 @@ bool finishedSpeaking() {
 }
 
 void ask() {
+  if (debug) {
+    Serial.print("in ask function, currentQuestionIndex = ");
+    Serial.println(currentQuestionIndex);
 
-  // express the appropriate face
-  makeFace();
+    // express the appropriate face
+    makeFace();
 
-  // Speak the greeting
-  if (debug) Serial.println(currentQuestion.audio_file);
-  musicPlayer.startPlayingFile("GREETING.WAV");
-  currentState = STATE_WAIT_GREETING_FINISH_PLAYING;
+    // Speak the greeting
+    if (debug) Serial.println(questions[currentQuestionIndex].audio_file);
+    musicPlayer.startPlayingFile("GREETING.WAV");
+    currentState = STATE_WAITING_SPEAKING_FINISHED;
+  }
 }
-
 
 void makeFace() {
 
   if (debug) {
-    Serial.print("new = ");
+    Serial.print("makeFace: new face is = ");
     Serial.print(newFaceState);
     Serial.print("\tpresent = ");
     Serial.println(presentFaceState);
   }
 
-  newFaceState = currentQuestion.face;
+  newFaceState = questions[currentQuestionIndex].face;
   if (newFaceState != presentFaceState) {
     robotFace.clear();
     robotFace.smile();
@@ -785,22 +630,39 @@ void endConversation() {
   //having_conversation = false;
 }
 
+// Return the number of the button pressed
+// button numbering starts at 1
+// so that we can return 0
+// if no buttons are pressed
 int checkButtonStates() {
-	for (int i = 0; i < FRONT_PANEL_BUTTON_COUNT; i++) {
-		int current_state = !digitalRead(front_panel_buttons[i]);
-		if (!current_state) {
-			front_panel_button_states[i] = 0;
-			delay(1); //set higher for better error handling
-		}
-		if (!front_panel_button_states[i] && current_state) {
-			// Front panel button pushed
-			front_panel_button_states[i] = 1;
-			if (debug) {
-				Serial.print("pressed: ");
-				Serial.println(i);
-			}
-      return i;
-		}
+  for (int i = 0; i < FRONT_PANEL_BUTTON_COUNT; i++) {
+
+    // read the button
+    int current_state = !digitalRead(front_panel_buttons[i]);
+
+
+    if (debug && current_state) {
+      Serial.print("button pressed at index = ");
+      Serial.println(i);
+    }
+
+    // if button is not set, record the state
+    if (!current_state) {
+      front_panel_button_states[i] = 0;
+      delay(1);  //set higher for better error handling
+    }
+
+    // edge detection: button was not pressed previously
+    // but now it is pressed
+    if (!front_panel_button_states[i] && current_state) {
+      // Front panel button pushed
+      front_panel_button_states[i] = 1;
+      if (debug) {
+        Serial.print("pressed switch number: ");
+        Serial.println(i + 1);
+      }
+      return i + 1;
+    }
     return 0;
-	}
+  }
 }
